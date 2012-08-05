@@ -3,9 +3,10 @@ import pyglet
 from pyglet.gl import *
 from pyglet.window import key
 
+import utils
 from utils import rad_to_deg
 
-_window = pyglet.window.Window()
+_window = pyglet.window.Window(width=800, height=500)
 
 SHARED_WALL_COLOR = 0.7, 0.7, 0.7, 1.0
 WALL_COLOR = 0.0, 0.0, 0.0, 1.0
@@ -51,6 +52,14 @@ class View(object):
                 for vertex in wall:
                     glVertex2f(*vertex)
                 glEnd()
+            
+            glColor4f(0.5, 1.0, 0.7, 1.0)
+            for triangle in utils.triangulate(room.vertices):
+                glBegin(GL_LINE_LOOP)
+                for vertex in triangle:
+                    glVertex2f(vertex[0], vertex[1])
+                glEnd()
+            
         
         # Draw player
         player = self.game.player
@@ -80,7 +89,8 @@ class View(object):
     	glMatrixMode(GL_PROJECTION)
     	glPushMatrix()
     	glLoadIdentity()
-    	gluPerspective(45.0, _window.width / _window.height, 0.1, 100.0)
+    	gluPerspective(45.0, float(_window.width) / float(_window.height),
+    	               0.1, 100.0)
     	glMatrixMode(GL_MODELVIEW)
     	glLoadIdentity()
         player = self.game.player
@@ -122,6 +132,13 @@ class View(object):
                 glVertex3f(vertex[0], vertex[1], room.floor_height)
                 glVertex3f(vertex[0], vertex[1], room.ceiling_height)
             glEnd()
+            
+            glColor4f(0.5, 1.0, 0.7, 1.0)
+            for triangle in utils.triangulate(room.vertices):
+                glBegin(GL_LINE_LOOP)
+                for vertex in triangle:
+                    glVertex3f(vertex[0], vertex[1], room.floor_height)
+                glEnd()
         
         # Draw player
         # Draw player

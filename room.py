@@ -1,6 +1,8 @@
 import math
 import itertools
 
+import utils
+
 class InvalidRoomError(Exception):
     """Raised when the room data isn't valid.
     
@@ -71,7 +73,11 @@ class Room(object):
                     angle_b = angle
             
             angle = (angle_b - angle_a)
-            angle = math.fmod(angle, math.pi)
+            # angle = math.fmod(angle, math.pi)
+            if angle > math.pi:
+                angle -= math.pi * 2
+            if angle < -math.pi:
+                angle += math.pi * 2
             total_angle += angle
         if total_angle > 0.0:
             raise InvalidRoomError("Rooms must be wound clockwise")
@@ -94,7 +100,7 @@ class Room(object):
         
         # Check for intersection. Loop over every pair of walls:
         for wall_a, wall_b in itertools.combinations(self.walls, 2):
-            if lines_intersect(wall_a, wall_b):
+            if utils.lines_intersect(wall_a, wall_b):
                 raise InvalidRoomError("Walls intersect: %s, %s" %
                                        (wall_a, wall_b))
         
@@ -103,53 +109,4 @@ class Room(object):
         
 
 
-def lines_intersect(line_one, line_two):
-    """Whether the two lines cross each other.
-    
-    >>> point_a = (-1.0, 0.0)  #   b
-    >>> point_b = (0.0, 1.0)   # a + c
-    >>> point_c = (1.0, 0.0)   #   d
-    >>> point_d = (0.0, -1.0)  #
-    >>> lines_intersect((point_a, point_b), (point_c, point_d))
-    False
-    >>> lines_intersect((point_a, point_c), (point_b, point_d))
-    True
-    
-    Each line is a tuple of two points, each points is a tuple of two 
-    coordinates.
-    
-    """
-    # First check for shared vertices
-    unique_points = set([line_one[0], line_one[1], line_two[0], line_two[1]])
-    if len(unique_points) == 1:
-        raise ValueError("Invalid lines")
-    elif len(unique_points) == 2:
-        raise ValueError("The lines are the same")
-    elif len(unique_points) == 3:
-        # One shared vertex; the lines join at one end so they can't intersect
-        return False
-    
-    ax = line_one[0][0]
-    ay = line_one[0][1]
-    bx = line_one[1][0]
-    by = line_one[1][1]
-    cx = line_two[0][0]
-    cy = line_two[0][1]
-    dx = line_two[1][0]
-    dy = line_two[1][1]
-    
-    # Magic (http://www.faqs.org/faqs/graphics/algorithms-faq/ 1.03)
-    try:
-        r = (((ay - cy) * (dx - cx) - (ax - cx) * (dy - cy)) /
-            ((bx - ax) * (dy - cy) - (by - ay) * (dx - cx)))
-    except ZeroDivisionError:
-        # Lines are parallel
-        return False
-    s = (((ay - cy) * (bx - ax) - (ax - cx) * (by - ay)) / 
-         ((bx - ax) * (dy - cy) - (by - ay) * (dx - cx)))
-    
-    if 0.0 <= r <= 1.0 and 0.0 <= s <= 1.0:
-        return True
-    else:
-        return False
 

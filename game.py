@@ -9,6 +9,8 @@ class Game(object):
         self.refresh_from_files()
     
     def update_shared_walls(self):
+        if len(self.rooms) <2:
+            return
         shared_walls = []
         # Loop over every pair of rooms
         for room_a, room_b in itertools.combinations(self.rooms, 2):

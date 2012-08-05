@@ -5,7 +5,7 @@
 	},
 	"rooms": [
 		{"floor_height": -1.0,
-		 "ceiling_height": 2.0,
+		 "ceiling_height": 20.0,
 		 "vertices": [[20.0, 20.0],
                       [20.0, 23.0],
                       [23.0, 23.0],
