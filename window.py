@@ -140,9 +140,10 @@ class View(object):
             
             glColor4f(0.0, 0.5, 0.7, 1.0)
             glBegin(GL_TRIANGLES)
-            for triangle in room.wall_triangles:
-                for vertex in triangle:
-                    glVertex3f(*vertex)
+            for wall_triangles in room.wall_triangles:
+                for triangle in wall_triangles:
+                    for vertex in triangle:
+                        glVertex3f(*vertex)
             glEnd()
         
         # Draw player
@@ -233,6 +234,11 @@ def on_key_release(symbol, modifiers):
 def on_draw():
     glClearColor(1.0, 1.0, 1.0, 1.0)
     glClear(GL_COLOR_BUFFER_BIT)
+    glClear(GL_DEPTH_BUFFER_BIT)
+    glEnable(GL_DEPTH_TEST)
+    glDepthFunc(GL_LEQUAL)
+    glPolygonOffset( 1.0, 1.0 )
+    glEnable(GL_POLYGON_OFFSET_FILL)
     # glCullFace(GL_BACK)
     # glEnable(GL_CULL_FACE)
     # glFrontFace(GL_CW)

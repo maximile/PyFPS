@@ -29,6 +29,8 @@ class Game(object):
         for room_data in data["rooms"]:
             self.rooms.append(Room(room_data))
         self.update_shared_walls()
+        for room in self.rooms:
+            room.generate_triangulated_data()
         
         self.player = Player(data["player"])
 
