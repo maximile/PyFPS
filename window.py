@@ -3,23 +3,34 @@ from pyglet.gl import *
 
 _window = pyglet.window.Window()
 
+SHARED_WALL_COLOR = 0.7, 0.7, 0.7, 1.0
+WALL_COLOR = 0.0, 0.0, 0.0, 1.0
+
 class View(object):
     def __init__(self, game):
         self.game = game
     
     def draw(self):
-        glColor4f(0.0, 0.0, 0.0, 1.0)
         for room in self.game.rooms:
-            glBegin(GL_LINE_LOOP)
-            for vertex in room.vertices:
-                glVertex2f(vertex[0], vertex[1])
-            glEnd()
+            for i, wall in enumerate(room.walls):
+                if i in room.shared_walls:
+                    glColor4f(*SHARED_WALL_COLOR)
+                else:
+                    glColor4f(*WALL_COLOR)
+                glBegin(GL_LINES)
+                for vertex in wall:
+                    glVertex2f(vertex[0], vertex[1])
+                glEnd()
 
 view = None
 def set_game(game):
     global view
     view = View(game)
 
+
+@_window.event
+def on_activate():
+    view.game.refresh_from_files()
 
 @_window.event
 def on_draw():
