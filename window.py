@@ -43,6 +43,13 @@ class View(object):
         glOrtho(0.0, 0.1, 0.0, 0.1, -1.0, 1.0)
         
         for room in self.game.rooms:
+            glColor4f(0.5, 1.0, 0.7, 1.0)
+            for triangle in utils.triangulate(room.vertices):
+                glBegin(GL_LINE_LOOP)
+                for vertex in triangle:
+                    glVertex2f(vertex[0], vertex[1])
+                glEnd()
+
             for i, wall in enumerate(room.walls):
                 if i in room.shared_walls:
                     glColor4f(*SHARED_WALL_COLOR)
@@ -53,12 +60,6 @@ class View(object):
                     glVertex2f(*vertex)
                 glEnd()
             
-            glColor4f(0.5, 1.0, 0.7, 1.0)
-            for triangle in utils.triangulate(room.vertices):
-                glBegin(GL_LINE_LOOP)
-                for vertex in triangle:
-                    glVertex2f(vertex[0], vertex[1])
-                glEnd()
             
         
         # Draw player
