@@ -118,7 +118,7 @@ def triangulate(vertices):
                         
             # Internal corner? Not an ear
             angle = get_angle(vertex_before, vertex, vertex_after)
-            if angle > 0.0:
+            if angle >= 0.0:
                 continue
             
             # Would a triangle made from the two adjacent points cross any

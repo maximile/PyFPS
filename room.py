@@ -28,9 +28,32 @@ class Room(object):
         
         # Generate triangulated data
         self.triangles = utils.triangulate(self.vertices)
+        self.wall_triangles = self.get_wall_triangles()
         
         # Walls shared with other rooms; key = wall index, value = other room
         self.shared_walls = {}
+    
+    def get_wall_triangles(self):
+        all_wall_triangles = []
+        # Triangulate each wall
+        for wall in self.walls:
+            # Build the walls points as if looking straight at it
+            wall_triangles = []
+            # Top left, going clockwise
+            top_left = wall[0][0], wall[0][1], self.ceiling_height
+            top_right = wall[1][0], wall[1][1], self.ceiling_height
+            bottom_right = wall[1][0], wall[1][1], self.floor_height
+            bottom_left = wall[0][0], wall[0][1], self.floor_height
+            
+            tri_one = top_left, top_right, bottom_right
+            tri_two = top_left, bottom_right, bottom_left
+            wall_triangles.append(tri_one)
+            wall_triangles.append(tri_two)
+            
+            all_wall_triangles.extend(wall_triangles)
+        
+        return all_wall_triangles
+            
     
     @property
     def walls(self):

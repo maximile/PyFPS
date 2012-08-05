@@ -137,6 +137,13 @@ class View(object):
                 for vertex in triangle:
                     glVertex3f(vertex[0], vertex[1], room.ceiling_height)
             glEnd()
+            
+            glColor4f(0.0, 0.5, 0.7, 1.0)
+            glBegin(GL_TRIANGLES)
+            for triangle in room.wall_triangles:
+                for vertex in triangle:
+                    glVertex3f(*vertex)
+            glEnd()
         
         # Draw player
         # Draw player
@@ -226,8 +233,8 @@ def on_key_release(symbol, modifiers):
 def on_draw():
     glClearColor(1.0, 1.0, 1.0, 1.0)
     glClear(GL_COLOR_BUFFER_BIT)
-    glCullFace(GL_BACK)
-    glEnable(GL_CULL_FACE)
-    glFrontFace(GL_CW)
+    # glCullFace(GL_BACK)
+    # glEnable(GL_CULL_FACE)
+    # glFrontFace(GL_CW)
     
     view.draw()
