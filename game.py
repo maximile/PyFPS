@@ -2,6 +2,7 @@ import json
 import itertools
 
 from room import Room
+from player import Player
 
 class Game(object):
     def __init__(self):
@@ -26,3 +27,8 @@ class Game(object):
         for room_data in data["rooms"]:
             self.rooms.append(Room(room_data))
         self.update_shared_walls()
+        
+        self.player = Player(data["player"])
+
+    def update(self, dt):
+        self.player.update(dt)

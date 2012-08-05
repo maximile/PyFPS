@@ -1,5 +1,16 @@
 {
+	"player": {
+		"position": [4.0, 4.0],
+		"heading": 0.8
+	},
 	"rooms": [
+		{"floor_height": -1.0,
+		 "ceiling_height": 2.0,
+		 "vertices": [[20.0, 20.0],
+                      [20.0, 23.0],
+                      [23.0, 23.0],
+                      [23.0, 20.0]]
+		},
 		{"floor_height": 0.0,
 		 "ceiling_height": 2.5,
 		 "vertices": [[3.0, 3.0],

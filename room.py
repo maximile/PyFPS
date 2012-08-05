@@ -9,6 +9,9 @@ class InvalidRoomError(Exception):
 
 class Room(object):
     def __init__(self, data):
+        self.floor_height = data["floor_height"]
+        self.ceiling_height = data["ceiling_height"]
+        
         # Wall vertex data, ordered clockwise
         self.vertices = []
         for vertex in data["vertices"]:
