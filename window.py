@@ -43,8 +43,8 @@ class View(object):
         glOrtho(0.0, 0.1, 0.0, 0.1, -1.0, 1.0)
         
         for room in self.game.rooms:
-            glColor4f(0.5, 1.0, 0.7, 1.0)
-            for triangle in utils.triangulate(room.vertices):
+            glColor4f(0.8, 1.0, 0.9, 1.0)
+            for triangle in room.triangles:
                 glBegin(GL_LINE_LOOP)
                 for vertex in triangle:
                     glVertex2f(vertex[0], vertex[1])
@@ -100,16 +100,7 @@ class View(object):
         glRotatef(rad_to_deg(player.pitch), 0.0, 1.0, 0.0)
         glRotatef(rad_to_deg(player.heading), 0.0, 0.0, -1.0)
         glTranslatef(-player.position[0], -player.position[1], -1.0)
-        
-        # glColor4f(0.0, 0.0, 0.0, 1.0)
-        # glBegin(GL_POINTS)
-        # for z in xrange(-4, 5):
-        #     for y in xrange(-2, 3):
-        #         for x in xrange(-2, 3):
-        #             glVertex3f(x, y, z)
-        # glEnd()
                 
-        
     	for room in self.game.rooms:
             for i, wall in enumerate(room.walls):
                 if i in room.shared_walls:
@@ -135,11 +126,17 @@ class View(object):
             glEnd()
             
             glColor4f(0.5, 1.0, 0.7, 1.0)
-            for triangle in utils.triangulate(room.vertices):
-                glBegin(GL_LINE_LOOP)
+            glBegin(GL_TRIANGLES)
+            for triangle in room.triangles:
                 for vertex in triangle:
                     glVertex3f(vertex[0], vertex[1], room.floor_height)
-                glEnd()
+            glEnd()
+            glColor4f(1.0, 0.5, 0.7, 1.0)
+            glBegin(GL_TRIANGLES)
+            for triangle in room.triangles:
+                for vertex in triangle:
+                    glVertex3f(vertex[0], vertex[1], room.ceiling_height)
+            glEnd()
         
         # Draw player
         # Draw player
@@ -229,5 +226,8 @@ def on_key_release(symbol, modifiers):
 def on_draw():
     glClearColor(1.0, 1.0, 1.0, 1.0)
     glClear(GL_COLOR_BUFFER_BIT)
+    glCullFace(GL_BACK)
+    glEnable(GL_CULL_FACE)
+    glFrontFace(GL_CW)
     
     view.draw()

@@ -26,6 +26,9 @@ class Room(object):
         # Check for other errors
         self.check_walls()
         
+        # Generate triangulated data
+        self.triangles = utils.triangulate(self.vertices)
+        
         # Walls shared with other rooms; key = wall index, value = other room
         self.shared_walls = {}
     
