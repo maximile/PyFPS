@@ -1,12 +1,14 @@
 #!/usr/bin/env python
 import pyglet
-import window
-import game
+from game import Game
+from view import View
+from window import Window
 
 def main():
-    the_game = game.Game()
-    window.set_game(the_game)
-    pyglet.clock.schedule_interval(the_game.update, 1/60.0)
+    game = Game()
+    view = View(game)
+    window = Window(view=view, width=800, height=500)
+    pyglet.clock.schedule_interval(game.update, 1/60.0)
     pyglet.app.run()
 
 if __name__ == "__main__":
