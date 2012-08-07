@@ -1,18 +1,43 @@
 import math
 import inputstates
+import pymunk
 
+# Movement properties
 WALK_SPEED = 3.0
 RUN_SPEED = 6.0
 
+# Physical properties
+MASS = 10.0
+FRICTION = 0.0
+RADIUS = 1.0
+
 class Player(object):
     def __init__(self, data):
-        self.position = tuple(data["position"])
+        self.initial_position = tuple(data["position"])
         self.heading = data.get("heading", 0.0)
         self.pitch = data.get("pitch", 0.0)
-        self.movement = 0.0, 0.0
         
         # Keep track of input (use constants - FORWARDS etc.)
         self.input_states = set()
+    
+    @property
+    def position(self):
+        return self.body.position
+    
+    def add_to_space(self, space):
+    	self.dragger = pymunk.Body(MASS, pymunk.inf)
+    	self.dragger.position = self.initial_position
+    	space.add(self.dragger)
+
+    	self.body = pymunk.Body(MASS, pymunk.inf)
+    	self.body.position = self.initial_position
+    	space.add(self.body)
+        
+        self.shape = pymunk.Circle(self.body, RADIUS)
+    	self.shape.friction = FRICTION
+        
+        constraint = pymunk.PinJoint(self.body, self.dragger)
+        space.add(constraint)
     
     def input_changed(self, state, value):
         """Record the change in input on the player object.
@@ -53,8 +78,8 @@ class Player(object):
                     math.cos(self.heading) * y_speed)
         
         # Add the offset to the current position
-        self.position = (self.position[0] + offset_x * dt,
-                         self.position[1] + offset_y * dt)
+        # self.position = (self.position[0] + offset_x * dt,
+        #                  self.position[1] + offset_y * dt)
 
     def on_mouse_moved(self, dx, dy):
         self.heading -= dx / 100.0

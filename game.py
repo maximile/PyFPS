@@ -3,11 +3,12 @@ import itertools
 
 from room import Room
 from player import Player
+import pymunk
 
 class Game(object):
     def __init__(self):
         self.refresh_from_files()
-    
+        
     def update_shared_walls(self):
         if len(self.rooms) <2:
             return
@@ -33,6 +34,18 @@ class Game(object):
             room.generate_triangulated_data()
         
         self.player = Player(data["player"])
+        
+        # Setup physics objects
+        self.space = pymunk.Space()
+        self.space.damping = 0.5
+    	self.space.gravity = (0.0, -100.0)
+    	
+    	# Let each object add themselves
+    	for room in self.rooms:
+    	    room.add_to_space(self.space)
+	    self.player.add_to_space(self.space)
+        
 
     def update(self, dt):
         self.player.update(dt)
+        self.space.step(dt)
