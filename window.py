@@ -1,6 +1,8 @@
 import pyglet.window
 from pyglet.window import key
 
+import inputstates
+
 class Window(pyglet.window.Window):
     def __init__(self, view, *args, **kwargs):
         pyglet.window.Window.__init__(self, *args, **kwargs)
@@ -19,13 +21,15 @@ class Window(pyglet.window.Window):
     
     def on_key_press(self, symbol, modifiers):
         if symbol == key.A:
-            self.view.a_down = True
+            self.view.game.player.input_changed(inputstates.LEFT, True)
         elif symbol == key.S:
-            self.view.s_down = True
+            self.view.game.player.input_changed(inputstates.BACKWARDS, True)
         elif symbol == key.W:
-            self.view.w_down = True
+            self.view.game.player.input_changed(inputstates.FORWARDS, True)
         elif symbol == key.D:
-            self.view.d_down = True
+            self.view.game.player.input_changed(inputstates.RIGHT, True)
+        elif symbol == key.LSHIFT:
+            self.view.game.player.input_changed(inputstates.RUN, True)
         elif symbol == key._1:
             self.view.draw_func = self.view.draw_2d
         elif symbol == key._3:
@@ -36,13 +40,15 @@ class Window(pyglet.window.Window):
         
     def on_key_release(self, symbol, modifiers):
         if symbol == key.A:
-            self.view.a_down = False
+            self.view.game.player.input_changed(inputstates.LEFT, False)
         elif symbol == key.S:
-            self.view.s_down = False
+            self.view.game.player.input_changed(inputstates.BACKWARDS, False)
         elif symbol == key.W:
-            self.view.w_down = False
+            self.view.game.player.input_changed(inputstates.FORWARDS, False)
         elif symbol == key.D:
-            self.view.d_down = False
+            self.view.game.player.input_changed(inputstates.RIGHT, False)
+        elif symbol == key.LSHIFT:
+            self.view.game.player.input_changed(inputstates.RUN, False)
         else:
             return
         self.view.update_player_movement_from_keys()
