@@ -34,6 +34,7 @@ class Game(object):
             room.generate_triangulated_data()
         
         self.player = Player(data["player"])
+        self.player.game = self
         
         # Setup physics objects
         self.space = pymunk.Space()
@@ -41,10 +42,10 @@ class Game(object):
 #        self.space.damping = 0.5
     	self.space.gravity = (1.0, 0.0)
     	
-    	# Let each object add themselves
-    	for room in self.rooms:
-    	    room.add_to_space(self.space)
-	    self.player.add_to_space(self.space)
+        # # Let each object add themselves
+        # for room in self.rooms:
+        #     room.add_to_space(self.space)
+        #       self.player.add_to_space(self.space)
         
 
     def update(self, dt):

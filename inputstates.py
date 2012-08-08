@@ -8,5 +8,5 @@ BACKWARDS = "backwards"
 LEFT = "left"
 RIGHT = "right"
 RUN = "run"
-
-PLAYER_INPUT_STATES = FORWARDS, BACKWARDS, LEFT, RIGHT, RUN
+CROUCH = "crouch"
+JUMP = "jump"

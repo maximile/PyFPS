@@ -97,7 +97,8 @@ class View(object):
         glRotatef(-90.0, 1.0, 0.0, 0.0)
         glRotatef(rad_to_deg(player.pitch), 0.0, 1.0, 0.0)
         glRotatef(rad_to_deg(player.heading), 0.0, 0.0, -1.0)
-        glTranslatef(-player.position[0], -player.position[1], -1.0)
+        glTranslatef(-player.position[0], -player.position[1],
+                     -player.eye_height)
                 
         for room in self.game.rooms:
             for i, wall in enumerate(room.walls):
@@ -144,7 +145,6 @@ class View(object):
                         glVertex3f(*vertex)
             glEnd()
         
-        # Draw player
         # Draw player
         player = self.game.player
         glColor4f(*PLAYER_COLOR)

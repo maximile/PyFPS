@@ -30,6 +30,10 @@ class Window(pyglet.window.Window):
             self.view.game.player.input_changed(inputstates.RIGHT, True)
         elif symbol == key.LSHIFT:
             self.view.game.player.input_changed(inputstates.RUN, True)
+        elif symbol == key.LCTRL:
+            self.view.game.player.input_changed(inputstates.CROUCH, True)
+        elif symbol == key.SPACE:
+            self.view.game.player.input_changed(inputstates.JUMP, True)
         elif symbol == key._1:
             self.view.draw_func = self.view.draw_2d
         elif symbol == key._3:
@@ -49,6 +53,10 @@ class Window(pyglet.window.Window):
             self.view.game.player.input_changed(inputstates.RIGHT, False)
         elif symbol == key.LSHIFT:
             self.view.game.player.input_changed(inputstates.RUN, False)
+        elif symbol == key.LCTRL:
+            self.view.game.player.input_changed(inputstates.CROUCH, False)
+        elif symbol == key.SPACE:
+            self.view.game.player.input_changed(inputstates.JUMP, False)
         else:
             return
         self.view.update_player_movement_from_keys()
