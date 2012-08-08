@@ -36,6 +36,7 @@ class Room(object):
     def add_to_space(self, space):
         for wall in self.walls:
             shape = pymunk.Segment(space.static_body, wall[0], wall[1], 0.0)
+            space.add(shape)
     
     def generate_triangulated_data(self):
         """Generate triangles to draw floor, ceiling and walls.

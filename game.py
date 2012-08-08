@@ -37,8 +37,9 @@ class Game(object):
         
         # Setup physics objects
         self.space = pymunk.Space()
-        self.space.damping = 0.5
-    	self.space.gravity = (0.0, -100.0)
+        self.space.iterations = 100
+#        self.space.damping = 0.5
+    	self.space.gravity = (1.0, 0.0)
     	
     	# Let each object add themselves
     	for room in self.rooms:
@@ -47,5 +48,5 @@ class Game(object):
         
 
     def update(self, dt):
-        self.player.update(dt)
-        self.space.step(dt)
+        self.player.update(1.0 / 60.0)
+        self.space.step(1.0 / 60.0)

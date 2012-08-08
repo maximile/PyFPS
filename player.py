@@ -9,13 +9,14 @@ RUN_SPEED = 6.0
 # Physical properties
 MASS = 10.0
 FRICTION = 0.0
-RADIUS = 1.0
+RADIUS = 0.4
 
 class Player(object):
     def __init__(self, data):
         self.initial_position = tuple(data["position"])
         self.heading = data.get("heading", 0.0)
         self.pitch = data.get("pitch", 0.0)
+        self.radius = RADIUS
         
         # Keep track of input (use constants - FORWARDS etc.)
         self.input_states = set()
@@ -31,13 +32,15 @@ class Player(object):
 
     	self.body = pymunk.Body(MASS, pymunk.inf)
     	self.body.position = self.initial_position
+        print self.body.velocity
     	space.add(self.body)
         
-        self.shape = pymunk.Circle(self.body, RADIUS)
-    	self.shape.friction = FRICTION
+        self.shape = pymunk.Circle(self.body, self.radius)
+        self.shape.friction = FRICTION
+        space.add(self.shape)
         
-        constraint = pymunk.PinJoint(self.body, self.dragger)
-        space.add(constraint)
+#        constraint = pymunk.PinJoint(self.body, self.dragger)
+#        space.add(constraint)
     
     def input_changed(self, state, value):
         """Record the change in input on the player object.

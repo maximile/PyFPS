@@ -68,7 +68,7 @@ class View(object):
         glRotatef(rad_to_deg(player.heading), 0.0, 0.0, 1.0)
         # Circle
         point_count = 12
-        radius = 0.3
+        radius = player.radius
         glBegin(GL_LINE_LOOP)
         for i in range(point_count):
             theta = 2 * math.pi * (i / float(point_count))
@@ -153,7 +153,7 @@ class View(object):
         glRotatef(rad_to_deg(player.heading), 0.0, 0.0, 1.0)
         # Circle
         point_count = 12
-        radius = 0.3
+        radius = player.radius
         glBegin(GL_LINE_LOOP)
         for i in range(point_count):
             theta = 2 * math.pi * (i / float(point_count))
