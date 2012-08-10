@@ -18,18 +18,12 @@ class Room(object):
         self.ceiling_height = data["ceiling_height"]
         
         # Textures
-        self.floor_texture = None
-        self.ceiling_texture = None
-        self.wall_texture = None
-        floor_texture_path = data.get("floor_texture")
-        if floor_texture_path:
-            self.floor_texture = pyglet.image.load(floor_texture_path).get_texture()
-        ceiling_texture_path = data.get("ceiling_texture")
-        if ceiling_texture_path:
-            self.ceiling_texture = pyglet.image.load(ceiling_texture_path).get_texture()
-        wall_texture_path = data.get("wall_texture")
-        if wall_texture_path:
-            self.wall_texture = pyglet.image.load(wall_texture_path).get_texture()
+        floor_texture_path = data.get("floor_texture", "default.png")
+        self.floor_texture = pyglet.image.load(floor_texture_path).get_texture()
+        ceiling_texture_path = data.get("ceiling_texture", "default.png")
+        self.ceiling_texture = pyglet.image.load(ceiling_texture_path).get_texture()
+        wall_texture_path = data.get("wall_texture", "default.png")
+        self.wall_texture = pyglet.image.load(wall_texture_path).get_texture()
         
         # Texture scales (1.0 means the texture is applied to 1m squares)
         self.floor_texture_scale = data.get("floor_texture_scale", 1.0)
@@ -51,7 +45,9 @@ class Room(object):
         
         # Triangulated data (generated later)
         self.floor_data = GLuint()
+        self.ceiling_data = GLuint()
         glGenBuffers(1, self.floor_data)
+        glGenBuffers(1, self.ceiling_data)
 
         # self.triangles = []
         self.wall_triangles = []
@@ -66,15 +62,15 @@ class Room(object):
         
         Must be called after shared walls have been set.
         
-        """
-        # self.triangles = utils.triangulate(self.vertices)
-        
+        """        
         # Get 2D triangles for the floor and ceiling
         self.triangles = utils.triangulate(self.vertices)
         # Put the vertex attributes in an interleaved array
         floor_data = []
+        ceiling_data = []
         for triangle in self.triangles:
             for point in triangle:
+                # Floor data
                 # 3D vertex coords
                 floor_data.append(point[0])
                 floor_data.append(point[1])
@@ -82,11 +78,30 @@ class Room(object):
                 # 2D texture coords
                 floor_data.append(point[0])
                 floor_data.append(point[1])
-        # Put it in an array of GLfloats
+            
+            # Ceiling triangles need to be reversed to get the correct winding
+            for point in reversed(triangle):
+                # Ceiling data
+                # 3D vertex coords
+                ceiling_data.append(point[0])
+                ceiling_data.append(point[1])
+                ceiling_data.append(self.ceiling_height)
+                # 2D texture coords
+                ceiling_data.append(point[0])
+                ceiling_data.append(point[1])
+        
+        # Floor: put it in an array of GLfloats
         floor_data = (GLfloat*len(floor_data))(*floor_data)
         # Add the data to the FBO
         glBindBuffer(GL_ARRAY_BUFFER, self.floor_data)
         glBufferData(GL_ARRAY_BUFFER, sizeof(floor_data), floor_data,
+                     GL_STATIC_DRAW)
+
+        # Ceiling: put it in an array of GLfloats
+        ceiling_data = (GLfloat*len(ceiling_data))(*ceiling_data)
+        # Add the data to the FBO
+        glBindBuffer(GL_ARRAY_BUFFER, self.ceiling_data)
+        glBufferData(GL_ARRAY_BUFFER, sizeof(ceiling_data), ceiling_data,
                      GL_STATIC_DRAW)
         
         self.wall_triangles = self.get_wall_triangles()

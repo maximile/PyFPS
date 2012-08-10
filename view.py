@@ -126,11 +126,11 @@ class View(object):
                 glVertex3f(vertex[0], vertex[1], room.ceiling_height)
             glEnd()
             
+            # Draw the floor. First, setup the state
             glColor4f(1.0, 1.0, 1.0, 1.0)
-            if room.floor_texture:
-                glEnable(room.floor_texture.target)
-                glBindTexture(room.floor_texture.target, room.floor_texture.id)
-
+            glEnable(room.floor_texture.target)
+            glBindTexture(room.floor_texture.target, room.floor_texture.id)
+            # Draw the geometry
             glEnableClientState(GL_VERTEX_ARRAY)
             glEnableClientState(GL_TEXTURE_COORD_ARRAY)
             glBindBuffer(GL_ARRAY_BUFFER, room.floor_data)
@@ -138,41 +138,29 @@ class View(object):
             glTexCoordPointer(2, GL_FLOAT, 5 * sizeof(GLfloat),
                               3 * sizeof(GLfloat))
             glDrawArrays(GL_TRIANGLES, 0, len(room.triangles) * 3)
+            # Reset the state
             glDisableClientState(GL_VERTEX_ARRAY)
             glDisableClientState(GL_TEXTURE_COORD_ARRAY)
+            glDisable(room.floor_texture.target)
             
-            if room.floor_texture:
-                glDisable(room.floor_texture.target)
+            # Draw the ceiling. First, setup the state
+            glColor4f(1.0, 1.0, 1.0, 1.0)
+            glEnable(room.ceiling_texture.target)
+            glBindTexture(room.ceiling_texture.target, room.ceiling_texture.id)
+            # Draw the geometry
+            glEnableClientState(GL_VERTEX_ARRAY)
+            glEnableClientState(GL_TEXTURE_COORD_ARRAY)
+            glBindBuffer(GL_ARRAY_BUFFER, room.ceiling_data)
+            glVertexPointer(3, GL_FLOAT, 5 * sizeof(GLfloat), 0)
+            glTexCoordPointer(2, GL_FLOAT, 5 * sizeof(GLfloat),
+                              3 * sizeof(GLfloat))
+            glDrawArrays(GL_TRIANGLES, 0, len(room.triangles) * 3)
+            # Reset the state
+            glDisableClientState(GL_VERTEX_ARRAY)
+            glDisableClientState(GL_TEXTURE_COORD_ARRAY)
+            glDisable(room.ceiling_texture.target)
             
             
-            # 
-            # # Draw floor
-            # glColor4f(1.0, 1.0, 1.0, 1.0)
-            # if room.floor_texture:
-            #     glEnable(room.floor_texture.target)
-            #     glBindTexture(room.floor_texture.target, room.floor_texture.id)
-            # glBegin(GL_TRIANGLES)
-            # for triangle in room.triangles:
-            #     for vertex in triangle:
-            #         glTexCoord2f(vertex[0], vertex[1])
-            #         glVertex3f(vertex[0], vertex[1], room.floor_height)
-            # glEnd()
-            # if room.floor_texture:
-            #     glDisable(room.floor_texture.target)
-            
-            # # Draw ceiling
-            # glColor4f(1.0, 1.0, 1.0, 1.0)
-            # if room.ceiling_texture:
-            #     glEnable(room.ceiling_texture.target)
-            #     glBindTexture(room.ceiling_texture.target, room.ceiling_texture.id)
-            # glBegin(GL_TRIANGLES)
-            # for triangle in room.triangles:
-            #     for vertex in triangle:
-            #         glTexCoord2f(vertex[0], vertex[1])
-            #         glVertex3f(vertex[0], vertex[1], room.ceiling_height)
-            # glEnd()
-            # if room.ceiling_texture:
-            #     glDisable(room.ceiling_texture.target)
             
             # Draw walls
             glColor4f(1.0, 1.0, 1.0, 1.0)
@@ -223,7 +211,9 @@ class View(object):
         glClear(GL_DEPTH_BUFFER_BIT)
         glEnable(GL_DEPTH_TEST)
         glDepthFunc(GL_LEQUAL)
-        glPolygonOffset( 1.0, 1.0 )
+        glPolygonOffset(1.0, 1.0)
         glEnable(GL_POLYGON_OFFSET_FILL)
+        glEnable(GL_CULL_FACE)
+        glFrontFace(GL_CW)
 
         self.draw_func()
