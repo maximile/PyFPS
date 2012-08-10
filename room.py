@@ -2,6 +2,7 @@ import math
 import itertools
 import pymunk
 import pyglet
+from pyglet.gl import *
 
 import utils
 
@@ -49,7 +50,10 @@ class Room(object):
         self.shared_walls = {}
         
         # Triangulated data (generated later)
-        self.triangles = []
+        self.floor_data = GLuint()
+        glGenBuffers(1, self.floor_data)
+
+        # self.triangles = []
         self.wall_triangles = []
     
     def add_to_space(self, space):
@@ -63,7 +67,28 @@ class Room(object):
         Must be called after shared walls have been set.
         
         """
+        # self.triangles = utils.triangulate(self.vertices)
+        
+        # Get 2D triangles for the floor and ceiling
         self.triangles = utils.triangulate(self.vertices)
+        # Put the vertex attributes in an interleaved array
+        floor_data = []
+        for triangle in self.triangles:
+            for point in triangle:
+                # 3D vertex coords
+                floor_data.append(point[0])
+                floor_data.append(point[1])
+                floor_data.append(self.floor_height)
+                # 2D texture coords
+                floor_data.append(point[0])
+                floor_data.append(point[1])
+        # Put it in an array of GLfloats
+        floor_data = (GLfloat*len(floor_data))(*floor_data)
+        # Add the data to the FBO
+        glBindBuffer(GL_ARRAY_BUFFER, self.floor_data)
+        glBufferData(GL_ARRAY_BUFFER, sizeof(floor_data), floor_data,
+                     GL_STATIC_DRAW)
+        
         self.wall_triangles = self.get_wall_triangles()
     
     def get_wall_triangles(self):

@@ -101,7 +101,7 @@ class View(object):
         glRotatef(rad_to_deg(player.heading), 0.0, 0.0, -1.0)
         glTranslatef(-player.position[0], -player.position[1],
                      -player.eye_height)
-                
+        
         for room in self.game.rooms:
             for i, wall in enumerate(room.walls):
                 if i in room.shared_walls:
@@ -126,41 +126,68 @@ class View(object):
                 glVertex3f(vertex[0], vertex[1], room.ceiling_height)
             glEnd()
             
-            # Draw floor
             glColor4f(1.0, 1.0, 1.0, 1.0)
             if room.floor_texture:
                 glEnable(room.floor_texture.target)
                 glBindTexture(room.floor_texture.target, room.floor_texture.id)
-            glBegin(GL_TRIANGLES)
-            for triangle in room.triangles:
-                for vertex in triangle:
-                    glTexCoord2f(vertex[0], vertex[1])
-                    glVertex3f(vertex[0], vertex[1], room.floor_height)
-            glEnd()
+
+            glEnableClientState(GL_VERTEX_ARRAY)
+            glEnableClientState(GL_TEXTURE_COORD_ARRAY)
+            glBindBuffer(GL_ARRAY_BUFFER, room.floor_data)
+            glVertexPointer(3, GL_FLOAT, 5 * sizeof(GLfloat), 0)
+            glTexCoordPointer(2, GL_FLOAT, 5 * sizeof(GLfloat),
+                              3 * sizeof(GLfloat))
+            glDrawArrays(GL_TRIANGLES, 0, len(room.triangles) * 3)
+            glDisableClientState(GL_VERTEX_ARRAY)
+            glDisableClientState(GL_TEXTURE_COORD_ARRAY)
+            
             if room.floor_texture:
                 glDisable(room.floor_texture.target)
             
-            # Draw ceiling
-            glColor4f(1.0, 1.0, 1.0, 1.0)
-            if room.ceiling_texture:
-                glEnable(room.ceiling_texture.target)
-                glBindTexture(room.ceiling_texture.target, room.ceiling_texture.id)
-            glBegin(GL_TRIANGLES)
-            for triangle in room.triangles:
-                for vertex in triangle:
-                    glTexCoord2f(vertex[0], vertex[1])
-                    glVertex3f(vertex[0], vertex[1], room.ceiling_height)
-            glEnd()
-            if room.ceiling_texture:
-                glDisable(room.ceiling_texture.target)
             
-            glColor4f(0.0, 0.5, 0.7, 1.0)
+            # 
+            # # Draw floor
+            # glColor4f(1.0, 1.0, 1.0, 1.0)
+            # if room.floor_texture:
+            #     glEnable(room.floor_texture.target)
+            #     glBindTexture(room.floor_texture.target, room.floor_texture.id)
+            # glBegin(GL_TRIANGLES)
+            # for triangle in room.triangles:
+            #     for vertex in triangle:
+            #         glTexCoord2f(vertex[0], vertex[1])
+            #         glVertex3f(vertex[0], vertex[1], room.floor_height)
+            # glEnd()
+            # if room.floor_texture:
+            #     glDisable(room.floor_texture.target)
+            
+            # # Draw ceiling
+            # glColor4f(1.0, 1.0, 1.0, 1.0)
+            # if room.ceiling_texture:
+            #     glEnable(room.ceiling_texture.target)
+            #     glBindTexture(room.ceiling_texture.target, room.ceiling_texture.id)
+            # glBegin(GL_TRIANGLES)
+            # for triangle in room.triangles:
+            #     for vertex in triangle:
+            #         glTexCoord2f(vertex[0], vertex[1])
+            #         glVertex3f(vertex[0], vertex[1], room.ceiling_height)
+            # glEnd()
+            # if room.ceiling_texture:
+            #     glDisable(room.ceiling_texture.target)
+            
+            # Draw walls
+            glColor4f(1.0, 1.0, 1.0, 1.0)
+            if room.wall_texture:
+                glEnable(room.wall_texture.target)
+                glBindTexture(room.wall_texture.target, room.wall_texture.id)
             glBegin(GL_TRIANGLES)
             for wall_triangles in room.wall_triangles:
                 for triangle in wall_triangles:
                     for vertex in triangle:
                         glVertex3f(*vertex)
+                        glTexCoord2f(vertex[0], vertex[1])
             glEnd()
+            if room.wall_texture:
+                glDisable(room.wall_texture.target)
         
         # Draw player
         player = self.game.player
