@@ -6,6 +6,13 @@ from pyglet.gl import *
 
 import utils
 
+# How to apply wall texture.
+# Overall: no seams, minimal distortion, texture can wrap over corners
+# Per wall: no seams, more distortion, texture repeats will always occur
+#           at corners
+WALL_TEXTURE_FIT_OVERALL = "overall"
+WALL_TEXTURE_FIT_PER_WALL = "per_wall"
+
 class InvalidRoomError(Exception):
     """Raised when the room data isn't valid.
     
@@ -17,13 +24,18 @@ class Room(object):
         self.floor_height = data["floor_height"]
         self.ceiling_height = data["ceiling_height"]
         
-        # Textures
+        # Floor texture.
         floor_texture_path = data.get("floor_texture", "default.png")
         self.floor_texture = pyglet.image.load(floor_texture_path).get_texture()
+        # Ceiling texture
         ceiling_texture_path = data.get("ceiling_texture", "default.png")
-        self.ceiling_texture = pyglet.image.load(ceiling_texture_path).get_texture()
+        self.ceiling_texture = pyglet.image.load(
+                                            ceiling_texture_path).get_texture()
+        # Wall texture.
         wall_texture_path = data.get("wall_texture", "default.png")
         self.wall_texture = pyglet.image.load(wall_texture_path).get_texture()
+        self.wall_texture_fit = data.get("wall_texture_fit",
+                                         WALL_TEXTURE_FIT_PER_WALL)
         
         # Texture scales (1.0 means the texture is applied to 1m squares)
         self.floor_texture_scale = data.get("floor_texture_scale", 1.0)
@@ -44,10 +56,15 @@ class Room(object):
         self.shared_walls = {}
         
         # Triangulated data (generated later)
-        self.floor_data = GLuint()
-        self.ceiling_data = GLuint()
-        glGenBuffers(1, self.floor_data)
-        glGenBuffers(1, self.ceiling_data)
+        self.floor_data_vbo = GLuint()
+        self.ceiling_data_vbo = GLuint()
+        self.wall_data_vbo = GLuint()
+        self.floor_data_count = 0
+        self.ceiling_data_count = 0
+        self.wall_data_count = 0
+        glGenBuffers(1, self.floor_data_vbo)
+        glGenBuffers(1, self.ceiling_data_vbo)
+        glGenBuffers(1, self.wall_data_vbo)
 
         # self.triangles = []
         self.wall_triangles = []
@@ -91,27 +108,35 @@ class Room(object):
                 ceiling_data.append(point[1])
         
         # Floor: put it in an array of GLfloats
-        floor_data = (GLfloat*len(floor_data))(*floor_data)
+        self.floor_data_count = len(floor_data)
+        floor_data = (GLfloat*self.floor_data_count)(*floor_data)
         # Add the data to the FBO
-        glBindBuffer(GL_ARRAY_BUFFER, self.floor_data)
+        glBindBuffer(GL_ARRAY_BUFFER, self.floor_data_vbo)
         glBufferData(GL_ARRAY_BUFFER, sizeof(floor_data), floor_data,
                      GL_STATIC_DRAW)
 
         # Ceiling: put it in an array of GLfloats
-        ceiling_data = (GLfloat*len(ceiling_data))(*ceiling_data)
+        self.ceiling_data_count = len(ceiling_data)
+        ceiling_data = (GLfloat*self.ceiling_data_count)(*ceiling_data)
         # Add the data to the FBO
-        glBindBuffer(GL_ARRAY_BUFFER, self.ceiling_data)
+        glBindBuffer(GL_ARRAY_BUFFER, self.ceiling_data_vbo)
         glBufferData(GL_ARRAY_BUFFER, sizeof(ceiling_data), ceiling_data,
                      GL_STATIC_DRAW)
         
-        self.wall_triangles = self.get_wall_triangles()
-    
-    def get_wall_triangles(self):
-        all_wall_triangles = []
+        # Now the walls
+        wall_data = []
         # Triangulate each wall
+        room_height = self.ceiling_height - self.floor_height
         for i, wall in enumerate(self.walls):
-            # Build the walls points as if looking straight at it
-            wall_triangles = []
+            # Get the texture x coords
+            wall_length = utils.get_length(wall)
+            room_height = utils.get_length(wall)
+            if self.wall_texture_fit == WALL_TEXTURE_FIT_PER_WALL:
+                tex_coord_left = 0.0
+                tex_coord_right = 1.0  # TODO: WRONG
+            
+            # Shared walls might need to draw wall above and/or below the
+            # other room.
             if i in self.shared_walls:
                 other = self.shared_walls[i]
                 # Wall above the opening?
@@ -121,10 +146,25 @@ class Room(object):
                     top_right = wall[1][0], wall[1][1], self.ceiling_height
                     bottom_right = wall[1][0], wall[1][1], other.ceiling_height
                     bottom_left = wall[0][0], wall[0][1], other.ceiling_height
-                    tri_one = top_left, top_right, bottom_right
-                    tri_two = top_left, bottom_right, bottom_left
-                    wall_triangles.append(tri_one)
-                    wall_triangles.append(tri_two)
+                    # First triangle
+                    wall_data.extend(top_left)  # Vertex
+                    wall_data.extend([tex_coord_left, 1.0])  # Tex
+                    wall_data.extend(top_right)  # Vertex
+                    wall_data.extend([tex_coord_right, 1.0])  # Tex
+                    wall_data.extend(bottom_right)  # Vertex
+                    wall_data.extend([tex_coord_right, 0.0])  # Tex, TODO: WRONG
+                    # Second triangle
+                    wall_data.extend(top_left)  # Vertex
+                    wall_data.extend([tex_coord_left, 1.0])  # Tex
+                    wall_data.extend(bottom_right)  # Vertex
+                    wall_data.extend([tex_coord_right, 0.0])  # Tex, TODO: WRONG
+                    wall_data.extend(bottom_left)  # Vertex
+                    wall_data.extend([tex_coord_left, 0.0])  # Tex, TODO: WRONG
+                    
+                    # tri_one = top_left, top_right, bottom_right
+                    # tri_two = top_left, bottom_right, bottom_left
+                    # wall_triangles.append(tri_one)
+                    # wall_triangles.append(tri_two)
                 # Wall below the opening?
                 if other.floor_height > self.floor_height:
                     # Top left, going clockwise
@@ -132,10 +172,25 @@ class Room(object):
                     top_right = wall[1][0], wall[1][1], other.floor_height
                     bottom_right = wall[1][0], wall[1][1], self.floor_height
                     bottom_left = wall[0][0], wall[0][1], self.floor_height
-                    tri_one = top_left, top_right, bottom_right
-                    tri_two = top_left, bottom_right, bottom_left
-                    wall_triangles.append(tri_one)
-                    wall_triangles.append(tri_two)
+                    # First triangle
+                    wall_data.extend(top_left)  # Vertex
+                    wall_data.extend([tex_coord_left, 1.0])  # Tex
+                    wall_data.extend(top_right)  # Vertex
+                    wall_data.extend([tex_coord_right, 1.0])  # Tex
+                    wall_data.extend(bottom_right)  # Vertex
+                    wall_data.extend([tex_coord_right, 0.0])  # Tex, TODO: WRONG
+                    # Second triangle
+                    wall_data.extend(top_left)  # Vertex
+                    wall_data.extend([tex_coord_left, 1.0])  # Tex
+                    wall_data.extend(bottom_right)  # Vertex
+                    wall_data.extend([tex_coord_right, 0.0])  # Tex, TODO: WRONG
+                    wall_data.extend(bottom_left)  # Vertex
+                    wall_data.extend([tex_coord_left, 0.0])  # Tex, TODO: WRONG
+                    
+                    # tri_one = top_left, top_right, bottom_right
+                    # tri_two = top_left, bottom_right, bottom_left
+                    # wall_triangles.append(tri_one)
+                    # wall_triangles.append(tri_two)
                     
             else:
                 # Top left, going clockwise
@@ -144,15 +199,28 @@ class Room(object):
                 bottom_right = wall[1][0], wall[1][1], self.floor_height
                 bottom_left = wall[0][0], wall[0][1], self.floor_height
                 
-                tri_one = top_left, top_right, bottom_right
-                tri_two = top_left, bottom_right, bottom_left
-                wall_triangles.append(tri_one)
-                wall_triangles.append(tri_two)
-                
-            all_wall_triangles.append(wall_triangles)
-            
-        return all_wall_triangles
-            
+                # First triangle
+                wall_data.extend(top_left)  # Vertex
+                wall_data.extend([tex_coord_left, 1.0])  # Tex
+                wall_data.extend(top_right)  # Vertex
+                wall_data.extend([tex_coord_right, 1.0])  # Tex
+                wall_data.extend(bottom_right)  # Vertex
+                wall_data.extend([tex_coord_right, 0.0])  # Tex, TODO: WRONG
+                # Second triangle
+                wall_data.extend(top_left)  # Vertex
+                wall_data.extend([tex_coord_left, 1.0])  # Tex
+                wall_data.extend(bottom_right)  # Vertex
+                wall_data.extend([tex_coord_right, 0.0])  # Tex, TODO: WRONG
+                wall_data.extend(bottom_left)  # Vertex
+                wall_data.extend([tex_coord_left, 0.0])  # Tex, TODO: WRONG
+        
+        # Wall: put it in an array of GLfloats
+        self.wall_data_count = len(wall_data)
+        wall_data = (GLfloat * self.wall_data_count)(*wall_data)
+        # Add the data to the FBO
+        glBindBuffer(GL_ARRAY_BUFFER, self.wall_data_vbo)
+        glBufferData(GL_ARRAY_BUFFER, sizeof(wall_data), wall_data,
+                     GL_STATIC_DRAW)            
     
     @property
     def walls(self):

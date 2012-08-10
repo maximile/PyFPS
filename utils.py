@@ -86,6 +86,13 @@ def lines_intersect(line_one, line_two):
     else:
         return False
 
+def get_length(points):
+    """Distance between two 2D points.
+    
+    """
+    x_offset = points[1][0] - points[0][0]
+    y_offset = points[1][1] - points[0][1]
+    return math.sqrt(x_offset * x_offset + y_offset * y_offset)
 
 def triangulate(vertices):
     """List of triangles making up the given polygon.
