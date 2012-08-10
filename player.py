@@ -8,9 +8,10 @@ WALK_SPEED = 3.0
 RUN_SPEED = 6.0
 
 # Height properties
-HEIGHT = 2.0
-EYE_HEIGHT = 1.8
+HEIGHT = 1.75
+EYE_HEIGHT = 1.6
 CROUCH_HEIGHT = 0.6
+EYE_LIMIT = 0.2  # Minimum distance from the eye to the floor or ceiling
 
 # Physics simulation properties
 MASS = 10.0
@@ -196,6 +197,18 @@ class Player(object):
         
         # And integrate the Z speed
         self.z_pos += self.z_speed
+        
+        # Finally, if the eye is too close to the floor or celing we clamp it
+        eye_height = self.z_pos + self.tallness
+        if eye_height < self.current_room.floor_height + EYE_LIMIT:
+            target_eye_height = self.current_room.floor_height + EYE_LIMIT
+            self.z_speed = 0.0
+        if eye_height > self.current_room.ceiling_height - EYE_LIMIT:
+            target_eye_height = self.current_room.ceiling_height - EYE_LIMIT
+            self.z_speed = 0.0
+        else:
+            target_eye_height = eye_height
+        self.z_pos += target_eye_height - eye_height
         
         # Calculate the player's velocity
         x_speed = 0

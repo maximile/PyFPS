@@ -18,6 +18,8 @@ class View(object):
         self.s_down = False
         self.d_down = False
         self.draw_func = self.draw_2d
+        
+        self.texture = pyglet.image.load("test.jpg").get_texture()
     
     def update_player_movement_from_keys(self):
         movement_speed = 3.0
@@ -124,18 +126,33 @@ class View(object):
                 glVertex3f(vertex[0], vertex[1], room.ceiling_height)
             glEnd()
             
-            glColor4f(0.5, 1.0, 0.7, 1.0)
+            # Draw floor
+            glColor4f(1.0, 1.0, 1.0, 1.0)
+            if room.floor_texture:
+                glEnable(room.floor_texture.target)
+                glBindTexture(room.floor_texture.target, room.floor_texture.id)
             glBegin(GL_TRIANGLES)
             for triangle in room.triangles:
                 for vertex in triangle:
+                    glTexCoord2f(vertex[0], vertex[1])
                     glVertex3f(vertex[0], vertex[1], room.floor_height)
             glEnd()
-            glColor4f(1.0, 0.5, 0.7, 1.0)
+            if room.floor_texture:
+                glDisable(room.floor_texture.target)
+            
+            # Draw ceiling
+            glColor4f(1.0, 1.0, 1.0, 1.0)
+            if room.ceiling_texture:
+                glEnable(room.ceiling_texture.target)
+                glBindTexture(room.ceiling_texture.target, room.ceiling_texture.id)
             glBegin(GL_TRIANGLES)
             for triangle in room.triangles:
                 for vertex in triangle:
+                    glTexCoord2f(vertex[0], vertex[1])
                     glVertex3f(vertex[0], vertex[1], room.ceiling_height)
             glEnd()
+            if room.ceiling_texture:
+                glDisable(room.ceiling_texture.target)
             
             glColor4f(0.0, 0.5, 0.7, 1.0)
             glBegin(GL_TRIANGLES)

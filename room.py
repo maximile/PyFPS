@@ -1,6 +1,7 @@
 import math
 import itertools
 import pymunk
+import pyglet
 
 import utils
 
@@ -14,6 +15,24 @@ class Room(object):
     def __init__(self, data):
         self.floor_height = data["floor_height"]
         self.ceiling_height = data["ceiling_height"]
+        
+        # Textures
+        self.floor_texture = None
+        self.ceiling_texture = None
+        self.wall_texture = None
+        floor_texture_path = data.get("floor_texture")
+        if floor_texture_path:
+            self.floor_texture = pyglet.image.load(floor_texture_path).get_texture()
+        ceiling_texture_path = data.get("ceiling_texture")
+        if ceiling_texture_path:
+            self.ceiling_texture = pyglet.image.load(ceiling_texture_path).get_texture()
+        wall_texture_path = data.get("wall_texture")
+        if wall_texture_path:
+            self.wall_texture = pyglet.image.load(wall_texture_path).get_texture()
+        
+        # Texture scales (1.0 means the texture is applied to 1m squares)
+        self.floor_texture_scale = data.get("floor_texture_scale", 1.0)
+        self.ceiling_texture_scale = data.get("ceiling_texture_scale", 1.0)
         
         # Wall vertex data, ordered clockwise
         self.vertices = []

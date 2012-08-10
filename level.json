@@ -23,7 +23,8 @@
                       [13.0, 20.0]]
 		},
 		{"floor_height": 0.0,
-		 "ceiling_height": 2.5,
+		 "ceiling_height": 3.0,
+		 "floor_texture": "test.jpg",
 		 "vertices": [[3.0, 3.0],
                       [8.0, 3.0],
                       [8.0, 6.0],
@@ -34,7 +35,7 @@
                       [3.0, 6.0]]
 		},
 		{"floor_height": 0.2,
-		 "ceiling_height": 2.5,
+		 "ceiling_height": 3.0,
 		 "vertices": [[4.0, 7.0],
                       [7.0, 7.0],
                       [7.0, 9.0],
