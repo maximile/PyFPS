@@ -130,10 +130,15 @@ class Room(object):
         for i, wall in enumerate(self.walls):
             # Get the texture x coords
             wall_length = utils.get_length(wall)
-            room_height = utils.get_length(wall)
             if self.wall_texture_fit == WALL_TEXTURE_FIT_PER_WALL:
+                # Ratio of room height to wall length determines how many 
+                # times the texture repeats.
+                repeat_count = round(wall_length / room_height)
+                if repeat_count < 1.0:
+                    repeat_count = 1.0
+                    
                 tex_coord_left = 0.0
-                tex_coord_right = 1.0  # TODO: WRONG
+                tex_coord_right = repeat_count
             
             # Shared walls might need to draw wall above and/or below the
             # other room.

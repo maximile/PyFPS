@@ -27,7 +27,7 @@
 		 "floor_texture": "grass.jpg",
 		 "ceiling_texture": "test.jpg",
 		 "wall_texture": "rock.jpg",
-		 "vertices": [[3.0, 3.0],
+		 "vertices": [[1.0, 1.0],
                       [8.0, 3.0],
                       [8.0, 6.0],
                       [7.0, 6.0],
