@@ -123,7 +123,15 @@ class Room(object):
         glBufferData(GL_ARRAY_BUFFER, sizeof(ceiling_data), ceiling_data,
                      GL_STATIC_DRAW)
         
-        # Now the walls
+        # Now the walls. If we're okay with wraps around corners, we need to 
+        # know the total wall length first.
+        if self.wall_texture_fit == WALL_TEXTURE_FIT_OVERALL:
+            total_wall_length = 0.0
+            for wall in self.walls:
+                total_wall_length += utils.get_length(wall)
+            # Also keep track of the length of wall covered
+            wall_covered = 0.0
+        
         wall_data = []
         # Triangulate each wall
         room_height = self.ceiling_height - self.floor_height
@@ -136,10 +144,21 @@ class Room(object):
                 repeat_count = round(wall_length / room_height)
                 if repeat_count < 1.0:
                     repeat_count = 1.0
-                    
                 tex_coord_left = 0.0
                 tex_coord_right = repeat_count
-            
+            elif self.wall_texture_fit == WALL_TEXTURE_FIT_OVERALL:
+                # Keep track of the length of wall covered
+                repeat_count = round(total_wall_length / room_height)
+                if repeat_count < 1.0:
+                    repeat_count = 1.0
+                tex_coord_left = (wall_covered /
+                                              total_wall_length) * repeat_count
+                wall_covered += wall_length
+                tex_coord_right = (wall_covered /
+                                              total_wall_length) * repeat_count
+            else:
+                raise ValueError("Unknown texture fit value: %s"
+                                 % self.wall_texture_fit)
             # Shared walls might need to draw wall above and/or below the
             # other room.
             if i in self.shared_walls:
