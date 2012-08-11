@@ -110,8 +110,8 @@ class Room(object):
                 tex_y = (point[0] * math.sin(self.floor_texture_angle) +
                          point[1] * math.cos(self.floor_texture_angle))
                 # Apply scale
-                tex_x /= floor_texture_scale
-                tex_y /= floor_texture_scale
+                tex_x /= self.floor_texture_scale
+                tex_y /= self.floor_texture_scale
                 # Correct ratio and add to list
                 floor_data.append(tex_x * floor_texture_ratio)
                 floor_data.append(tex_y)
@@ -134,6 +134,9 @@ class Room(object):
                          point[1] * math.sin(self.ceiling_texture_angle))
                 tex_y = (point[0] * math.sin(self.ceiling_texture_angle) +
                          point[1] * math.cos(self.ceiling_texture_angle))
+                 # Apply scale
+                 tex_x /= self.ceiling_texture_scale
+                 tex_y /= self.ceiling_texture_scale
                 # Correct ratio and add to list
                 ceiling_data.append(tex_x * ceiling_texture_ratio)
                 ceiling_data.append(tex_y)
