@@ -47,7 +47,8 @@ class Room(object):
         self.floor_texture_angle = data.get("floor_texture_angle", 0.0)
         self.ceiling_texture_angle = data.get("ceiling_texture_angle", 0.0)
         self.floor_texture_angle = utils.deg_to_rad(self.floor_texture_angle)
-        self.ceiling_texture_angle = utils.deg_to_rad(self.ceiling_texture_angle)
+        self.ceiling_texture_angle = utils.deg_to_rad(
+                                                    self.ceiling_texture_angle)
         
         # Wall vertex data, ordered clockwise
         self.vertices = []
@@ -212,25 +213,23 @@ class Room(object):
                     top_right = wall[1][0], wall[1][1], self.ceiling_height
                     bottom_right = wall[1][0], wall[1][1], other.ceiling_height
                     bottom_left = wall[0][0], wall[0][1], other.ceiling_height
+                    y_tex = 1 - ((self.ceiling_height - other.ceiling_height) /
+                                 room_height)
                     # First triangle
                     wall_data.extend(top_left)  # Vertex
                     wall_data.extend([tex_coord_left, 1.0])  # Tex
                     wall_data.extend(top_right)  # Vertex
                     wall_data.extend([tex_coord_right, 1.0])  # Tex
                     wall_data.extend(bottom_right)  # Vertex
-                    wall_data.extend([tex_coord_right, 0.0])  # Tex, TODO: WRONG
+                    wall_data.extend([tex_coord_right, y_tex])  # Tex
                     # Second triangle
                     wall_data.extend(top_left)  # Vertex
                     wall_data.extend([tex_coord_left, 1.0])  # Tex
                     wall_data.extend(bottom_right)  # Vertex
-                    wall_data.extend([tex_coord_right, 0.0])  # Tex, TODO: WRONG
+                    wall_data.extend([tex_coord_right, y_tex])  # Tex
                     wall_data.extend(bottom_left)  # Vertex
-                    wall_data.extend([tex_coord_left, 0.0])  # Tex, TODO: WRONG
+                    wall_data.extend([tex_coord_left, y_tex])  # Tex
                     
-                    # tri_one = top_left, top_right, bottom_right
-                    # tri_two = top_left, bottom_right, bottom_left
-                    # wall_triangles.append(tri_one)
-                    # wall_triangles.append(tri_two)
                 # Wall below the opening?
                 if other.floor_height > self.floor_height:
                     # Top left, going clockwise
@@ -238,20 +237,23 @@ class Room(object):
                     top_right = wall[1][0], wall[1][1], other.floor_height
                     bottom_right = wall[1][0], wall[1][1], self.floor_height
                     bottom_left = wall[0][0], wall[0][1], self.floor_height
+                    y_tex = ((other.floor_height - self.floor_height) /
+                                 room_height)
+                    
                     # First triangle
                     wall_data.extend(top_left)  # Vertex
-                    wall_data.extend([tex_coord_left, 1.0])  # Tex
+                    wall_data.extend([tex_coord_left, y_tex])  # Tex
                     wall_data.extend(top_right)  # Vertex
-                    wall_data.extend([tex_coord_right, 1.0])  # Tex
+                    wall_data.extend([tex_coord_right, y_tex])  # Tex
                     wall_data.extend(bottom_right)  # Vertex
-                    wall_data.extend([tex_coord_right, 0.0])  # Tex, TODO: WRONG
+                    wall_data.extend([tex_coord_right, 0.0])  # Tex
                     # Second triangle
                     wall_data.extend(top_left)  # Vertex
-                    wall_data.extend([tex_coord_left, 1.0])  # Tex
+                    wall_data.extend([tex_coord_left, y_tex])  # Tex
                     wall_data.extend(bottom_right)  # Vertex
-                    wall_data.extend([tex_coord_right, 0.0])  # Tex, TODO: WRONG
+                    wall_data.extend([tex_coord_right, 0.0])  # Tex
                     wall_data.extend(bottom_left)  # Vertex
-                    wall_data.extend([tex_coord_left, 0.0])  # Tex, TODO: WRONG
+                    wall_data.extend([tex_coord_left, 0.0])  # Tex
                     
                     # tri_one = top_left, top_right, bottom_right
                     # tri_two = top_left, bottom_right, bottom_left
