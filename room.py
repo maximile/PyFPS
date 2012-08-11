@@ -26,14 +26,16 @@ class Room(object):
         
         # Floor texture.
         floor_texture_path = data.get("floor_texture", "default.png")
-        self.floor_texture = pyglet.image.load(floor_texture_path).get_texture()
+        floor_texture_image = pyglet.image.load(floor_texture_path)
+        self.floor_texture = floor_texture_image.get_mipmapped_texture()
         # Ceiling texture
         ceiling_texture_path = data.get("ceiling_texture", "default.png")
-        self.ceiling_texture = pyglet.image.load(
-                                            ceiling_texture_path).get_texture()
+        ceiling_texture_image = pyglet.image.load(ceiling_texture_path)
+        self.ceiling_texture = ceiling_texture_image.get_mipmapped_texture()
         # Wall texture.
         wall_texture_path = data.get("wall_texture", "default.png")
-        self.wall_texture = pyglet.image.load(wall_texture_path).get_texture()
+        wall_texture_image = pyglet.image.load(wall_texture_path)
+        self.wall_texture = wall_texture_image.get_mipmapped_texture()
         self.wall_texture_fit = data.get("wall_texture_fit",
                                          WALL_TEXTURE_FIT_PER_WALL)
         
@@ -134,9 +136,9 @@ class Room(object):
                          point[1] * math.sin(self.ceiling_texture_angle))
                 tex_y = (point[0] * math.sin(self.ceiling_texture_angle) +
                          point[1] * math.cos(self.ceiling_texture_angle))
-                 # Apply scale
-                 tex_x /= self.ceiling_texture_scale
-                 tex_y /= self.ceiling_texture_scale
+                # Apply scale
+                tex_x /= self.ceiling_texture_scale
+                tex_y /= self.ceiling_texture_scale
                 # Correct ratio and add to list
                 ceiling_data.append(tex_x * ceiling_texture_ratio)
                 ceiling_data.append(tex_y)
