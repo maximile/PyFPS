@@ -41,6 +41,12 @@ class Room(object):
         self.floor_texture_scale = data.get("floor_texture_scale", 1.0)
         self.ceiling_texture_scale = data.get("ceiling_texture_scale", 1.0)
         
+        # Texture rotation, degrees
+        self.floor_texture_angle = data.get("floor_texture_angle", 0.0)
+        self.ceiling_texture_angle = data.get("ceiling_texture_angle", 0.0)
+        self.floor_texture_angle = utils.deg_to_rad(self.floor_texture_angle)
+        self.ceiling_texture_angle = utils.deg_to_rad(self.ceiling_texture_angle)
+        
         # Wall vertex data, ordered clockwise
         self.vertices = []
         for vertex in data["vertices"]:
@@ -93,13 +99,19 @@ class Room(object):
                 floor_data.append(point[1])
                 floor_data.append(self.floor_height)
                 # 2D texture coords
+                # Take the longest dimension as 1m
                 floor_texture_ratio = (float(self.floor_texture.width) /
                                        float(self.floor_texture.height))
-                # Take the longest dimension as 1m
                 if floor_texture_ratio < 1.0:
                     floor_texture_ratio = 1.0 / floor_texture_ratio
-                floor_data.append(point[0] * floor_texture_ratio)
-                floor_data.append(point[1])
+                # Apply rotation
+                tex_x = (point[0] * math.cos(self.floor_texture_angle) -
+                         point[1] * math.sin(self.floor_texture_angle))
+                tex_y = (point[0] * math.sin(self.floor_texture_angle) +
+                         point[1] * math.cos(self.floor_texture_angle))
+                # Correct ratio and add to list
+                floor_data.append(tex_x * floor_texture_ratio)
+                floor_data.append(tex_y)
             
             # Ceiling triangles need to be reversed to get the correct winding
             for point in reversed(triangle):
@@ -109,13 +121,19 @@ class Room(object):
                 ceiling_data.append(point[1])
                 ceiling_data.append(self.ceiling_height)
                 # 2D texture coords
+                # Take the longest dimension as 1m
                 ceiling_texture_ratio = (float(self.ceiling_texture.width) /
                                          float(self.ceiling_texture.height))
-                # Take the longest dimension as 1m
                 if ceiling_texture_ratio < 1.0:
                     ceiling_texture_ratio = 1.0 / ceiling_texture_ratio
-                ceiling_data.append(point[0] * ceiling_texture_ratio)
-                ceiling_data.append(point[1])
+                # Apply rotation
+                tex_x = (point[0] * math.cos(self.ceiling_texture_angle) -
+                         point[1] * math.sin(self.ceiling_texture_angle))
+                tex_y = (point[0] * math.sin(self.ceiling_texture_angle) +
+                         point[1] * math.cos(self.ceiling_texture_angle))
+                # Correct ratio and add to list
+                ceiling_data.append(tex_x * ceiling_texture_ratio)
+                ceiling_data.append(tex_y)
         
         # Floor: put it in an array of GLfloats
         self.floor_data_count = len(floor_data)
