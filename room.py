@@ -142,6 +142,9 @@ class Room(object):
                 # Ratio of room height to wall length determines how many 
                 # times the texture repeats.
                 repeat_count = round(wall_length / room_height)
+                # Account for the texture's dimensions
+                repeat_count *= (float(self.wall_texture.height) /
+                                 float(self.wall_texture.width))
                 if repeat_count < 1.0:
                     repeat_count = 1.0
                 tex_coord_left = 0.0
@@ -149,6 +152,9 @@ class Room(object):
             elif self.wall_texture_fit == WALL_TEXTURE_FIT_OVERALL:
                 # Keep track of the length of wall covered
                 repeat_count = round(total_wall_length / room_height)
+                # Account for the texture's dimensions
+                repeat_count *= (float(self.wall_texture.height) /
+                                 float(self.wall_texture.width))
                 if repeat_count < 1.0:
                     repeat_count = 1.0
                 tex_coord_left = (wall_covered /
