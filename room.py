@@ -93,7 +93,12 @@ class Room(object):
                 floor_data.append(point[1])
                 floor_data.append(self.floor_height)
                 # 2D texture coords
-                floor_data.append(point[0])
+                floor_texture_ratio = (float(self.floor_texture.width) /
+                                       float(self.floor_texture.height))
+                # Take the longest dimension as 1m
+                if floor_texture_ratio < 1.0:
+                    floor_texture_ratio = 1.0 / floor_texture_ratio
+                floor_data.append(point[0] * floor_texture_ratio)
                 floor_data.append(point[1])
             
             # Ceiling triangles need to be reversed to get the correct winding
@@ -104,7 +109,12 @@ class Room(object):
                 ceiling_data.append(point[1])
                 ceiling_data.append(self.ceiling_height)
                 # 2D texture coords
-                ceiling_data.append(point[0])
+                ceiling_texture_ratio = (float(self.ceiling_texture.width) /
+                                         float(self.ceiling_texture.height))
+                # Take the longest dimension as 1m
+                if ceiling_texture_ratio < 1.0:
+                    ceiling_texture_ratio = 1.0 / ceiling_texture_ratio
+                ceiling_data.append(point[0] * ceiling_texture_ratio)
                 ceiling_data.append(point[1])
         
         # Floor: put it in an array of GLfloats
