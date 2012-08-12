@@ -1,0 +1,13 @@
+# Blender3D MTL File: untitled.blend
+# Material Count: 1
+newmtl Material_PipeLight
+Ns 374.509804
+Ka 0.000000 0.000000 0.000000
+Kd 0.800000 0.000000 0.000000
+Ks 0.909535 0.909535 0.909535
+Ni 1.000000
+d 1.000000
+illum 2
+map_Kd Untitled
+
+

@@ -19,8 +19,6 @@ class View(object):
         self.d_down = False
         self.draw_func = self.draw_2d
         
-        self.texture = pyglet.image.load("test.jpg").get_texture()
-    
     def update_player_movement_from_keys(self):
         movement_speed = 3.0
         x_speed = 0

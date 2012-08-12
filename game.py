@@ -25,7 +25,7 @@ class Game(object):
                         room_b.shared_walls[index_b] = room_a
 
     def refresh_from_files(self):
-        data = json.load(open("level.json", "r"))
+        data = json.load(open("levels/level.json", "r"))
         self.rooms = []
         for room_data in data["rooms"]:
             self.rooms.append(Room(room_data))

@@ -25,15 +25,16 @@ class Room(object):
         self.ceiling_height = data["ceiling_height"]
         
         # Floor texture.
-        floor_texture_path = data.get("floor_texture", "default.png")
+        floor_texture_path = data.get("floor_texture", "textures/default.png")
         floor_texture_image = pyglet.image.load(floor_texture_path)
         self.floor_texture = floor_texture_image.get_mipmapped_texture()
         # Ceiling texture
-        ceiling_texture_path = data.get("ceiling_texture", "default.png")
+        ceiling_texture_path = data.get("ceiling_texture",
+                                        "textures/default.png")
         ceiling_texture_image = pyglet.image.load(ceiling_texture_path)
         self.ceiling_texture = ceiling_texture_image.get_mipmapped_texture()
         # Wall texture.
-        wall_texture_path = data.get("wall_texture", "default.png")
+        wall_texture_path = data.get("wall_texture", "textures/default.png")
         wall_texture_image = pyglet.image.load(wall_texture_path)
         self.wall_texture = wall_texture_image.get_mipmapped_texture()
         self.wall_texture_fit = data.get("wall_texture_fit",
