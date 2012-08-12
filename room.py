@@ -42,6 +42,7 @@ class Room(object):
         # Texture scales (1.0 means the texture is applied to 1m squares)
         self.floor_texture_scale = data.get("floor_texture_scale", 1.0)
         self.ceiling_texture_scale = data.get("ceiling_texture_scale", 1.0)
+        self.wall_texture_scale = data.get("wall_texture_scale", 1.0)
         
         # Texture rotation, degrees
         self.floor_texture_angle = data.get("floor_texture_angle", 0.0)
@@ -182,6 +183,7 @@ class Room(object):
                 # Account for the texture's dimensions
                 repeat_count *= (float(self.wall_texture.height) /
                                  float(self.wall_texture.width))
+                repeat_count /= self.wall_texture_scale
                 if repeat_count < 1.0:
                     repeat_count = 1.0
                 tex_coord_left = 0.0
@@ -192,6 +194,7 @@ class Room(object):
                 # Account for the texture's dimensions
                 repeat_count *= (float(self.wall_texture.height) /
                                  float(self.wall_texture.width))
+                repeat_count /= self.wall_texture_scale
                 if repeat_count < 1.0:
                     repeat_count = 1.0
                 tex_coord_left = (wall_covered /
@@ -213,18 +216,19 @@ class Room(object):
                     top_right = wall[1][0], wall[1][1], self.ceiling_height
                     bottom_right = wall[1][0], wall[1][1], other.ceiling_height
                     bottom_left = wall[0][0], wall[0][1], other.ceiling_height
-                    y_tex = 1 - ((self.ceiling_height - other.ceiling_height) /
-                                 room_height)
+                    y_tex = ((other.ceiling_height - self.floor_height) /
+                             room_height)
+                    y_tex /= self.wall_texture_scale
                     # First triangle
                     wall_data.extend(top_left)  # Vertex
-                    wall_data.extend([tex_coord_left, 1.0])  # Tex
+                    wall_data.extend([tex_coord_left, 1.0 / self.wall_texture_scale])  # Tex
                     wall_data.extend(top_right)  # Vertex
-                    wall_data.extend([tex_coord_right, 1.0])  # Tex
+                    wall_data.extend([tex_coord_right, 1.0 / self.wall_texture_scale])  # Tex
                     wall_data.extend(bottom_right)  # Vertex
                     wall_data.extend([tex_coord_right, y_tex])  # Tex
                     # Second triangle
                     wall_data.extend(top_left)  # Vertex
-                    wall_data.extend([tex_coord_left, 1.0])  # Tex
+                    wall_data.extend([tex_coord_left, 1.0 / self.wall_texture_scale])  # Tex
                     wall_data.extend(bottom_right)  # Vertex
                     wall_data.extend([tex_coord_right, y_tex])  # Tex
                     wall_data.extend(bottom_left)  # Vertex
@@ -238,8 +242,9 @@ class Room(object):
                     bottom_right = wall[1][0], wall[1][1], self.floor_height
                     bottom_left = wall[0][0], wall[0][1], self.floor_height
                     y_tex = ((other.floor_height - self.floor_height) /
-                                 room_height)
-                    
+                             room_height)
+                    y_tex /= self.wall_texture_scale
+            
                     # First triangle
                     wall_data.extend(top_left)  # Vertex
                     wall_data.extend([tex_coord_left, y_tex])  # Tex
@@ -254,12 +259,7 @@ class Room(object):
                     wall_data.extend([tex_coord_right, 0.0])  # Tex
                     wall_data.extend(bottom_left)  # Vertex
                     wall_data.extend([tex_coord_left, 0.0])  # Tex
-                    
-                    # tri_one = top_left, top_right, bottom_right
-                    # tri_two = top_left, bottom_right, bottom_left
-                    # wall_triangles.append(tri_one)
-                    # wall_triangles.append(tri_two)
-                    
+            
             else:
                 # Top left, going clockwise
                 top_left = wall[0][0], wall[0][1], self.ceiling_height
@@ -269,14 +269,14 @@ class Room(object):
                 
                 # First triangle
                 wall_data.extend(top_left)  # Vertex
-                wall_data.extend([tex_coord_left, 1.0])  # Tex
+                wall_data.extend([tex_coord_left, 1.0 / self.wall_texture_scale])  # Tex
                 wall_data.extend(top_right)  # Vertex
-                wall_data.extend([tex_coord_right, 1.0])  # Tex
+                wall_data.extend([tex_coord_right, 1.0 / self.wall_texture_scale])  # Tex
                 wall_data.extend(bottom_right)  # Vertex
                 wall_data.extend([tex_coord_right, 0.0])  # Tex, TODO: WRONG
                 # Second triangle
                 wall_data.extend(top_left)  # Vertex
-                wall_data.extend([tex_coord_left, 1.0])  # Tex
+                wall_data.extend([tex_coord_left, 1.0 / self.wall_texture_scale])  # Tex
                 wall_data.extend(bottom_right)  # Vertex
                 wall_data.extend([tex_coord_right, 0.0])  # Tex, TODO: WRONG
                 wall_data.extend(bottom_left)  # Vertex
