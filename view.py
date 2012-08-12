@@ -210,7 +210,7 @@ class View(object):
         glDepthFunc(GL_LEQUAL)
         glPolygonOffset(1.0, 1.0)
         glEnable(GL_POLYGON_OFFSET_FILL)
-        # glEnable(GL_CULL_FACE)
-        # glFrontFace(GL_CW)
+        glEnable(GL_CULL_FACE)
+        glFrontFace(GL_CW)
 
         self.draw_func()

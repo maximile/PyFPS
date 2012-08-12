@@ -153,16 +153,16 @@ class Room(object):
                 ceiling_data.append(tex_y)
         
         # Floor: put it in an array of GLfloats
-        self.floor_data_count = len(floor_data)
-        floor_data = (GLfloat*self.floor_data_count)(*floor_data)
+        self.floor_data_count = len(floor_data) / 5
+        floor_data = (GLfloat * len(floor_data))(*floor_data)
         # Add the data to the FBO
         glBindBuffer(GL_ARRAY_BUFFER, self.floor_data_vbo)
         glBufferData(GL_ARRAY_BUFFER, sizeof(floor_data), floor_data,
                      GL_STATIC_DRAW)
 
         # Ceiling: put it in an array of GLfloats
-        self.ceiling_data_count = len(ceiling_data)
-        ceiling_data = (GLfloat*self.ceiling_data_count)(*ceiling_data)
+        self.ceiling_data_count = len(ceiling_data) / 5
+        ceiling_data = (GLfloat * len(ceiling_data))(*ceiling_data)
         # Add the data to the FBO
         glBindBuffer(GL_ARRAY_BUFFER, self.ceiling_data_vbo)
         glBufferData(GL_ARRAY_BUFFER, sizeof(ceiling_data), ceiling_data,
@@ -290,8 +290,8 @@ class Room(object):
                 wall_data.extend([tex_coord_left, 0.0])  # Tex, TODO: WRONG
         
         # Wall: put it in an array of GLfloats
-        self.wall_data_count = len(wall_data)
-        wall_data = (GLfloat * self.wall_data_count)(*wall_data)
+        self.wall_data_count = len(wall_data) / 5
+        wall_data = (GLfloat * len(wall_data))(*wall_data)
         # Add the data to the FBO
         glBindBuffer(GL_ARRAY_BUFFER, self.wall_data_vbo)
         glBufferData(GL_ARRAY_BUFFER, sizeof(wall_data), wall_data,
