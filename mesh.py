@@ -21,9 +21,13 @@ class Mesh(object):
         for line in obj_data.split("\n"):
             if line.startswith("v "):
                 # Vertex position data; get three floats
-                vertex_components = (float(string_rep) for
-                                     string_rep in line[2:].split(" "))
-                vertices.append(tuple(vertex_components))
+                vertex_components = [float(string_rep) for
+                                     string_rep in line[2:].split(" ")]
+                # Swap y and z because we're using z as up
+                vertex = (vertex_components[0], vertex_components[2],
+                          vertex_components[1])
+                                     
+                vertices.append(vertex)
             elif line.startswith("f "):
                 face_data = line[2:].split(" ")
                 corners = []  # Three or four items
@@ -31,11 +35,8 @@ class Mesh(object):
                     # Subtract one from indexes because they start at one
                     vertex_data = [int(string_rep) - 1 for
                                    string_rep in vertex_data.split("/")]
-                    # Swap y and z because we're using z as up
-                    vertex_data = (vertex_data[0], vertex_data[2],
-                                   vertex_data[1])
                     # vertex_index, normal_index, tex_coord_index = vertex_data
-                    corners.append(vertex_data)
+                    corners.append(tuple(vertex_data))
                 faces.append(tuple(corners))
             elif line.startswith("vt "):
                 # Vertex position data; get three floats
@@ -65,7 +66,6 @@ class Mesh(object):
             else:
                 raise RuntimeError("Invalid .obj data - %i verts in face" %
                                    len(face_verts))
-        print vertex_data
         
         # Now put together the vertex buffer object
         self.data_vbo = GLuint()
