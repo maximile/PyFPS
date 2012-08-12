@@ -83,7 +83,7 @@ class Player(object):
         
     def get_current_room(self):
         distant_point = (0.0, 1e10)
-        player_to_distance = (self.position, distant_point)
+        player_to_distance = (tuple(self.position), distant_point)
         for room in self.game.rooms:
             # Count the times it crosses the room's boundary. Odd = inside.
             cross_count = 0
@@ -97,20 +97,20 @@ class Player(object):
         return None
         
     def add_to_space(self, space):
-        self.dragger = pymunk.Body(MASS, pymunk.inf)
-        self.dragger.position = self.initial_position
-        space.add(self.dragger)
+        # self.dragger = pymunk.Body(MASS, pymunk.inf)
+        # self.dragger.position = self._position
+        # space.add(self.dragger)
 
         self.body = pymunk.Body(MASS, pymunk.inf)
-        self.body.position = self.initial_position
+        self.body.position = self._position
         space.add(self.body)
         
         self.shape = pymunk.Circle(self.body, self.radius)
         self.shape.friction = FRICTION
         space.add(self.shape)
         
-        constraint = pymunk.PinJoint(self.body, self.dragger)
-        space.add(constraint)
+        # constraint = pymunk.PinJoint(self.body, self.dragger)
+        # space.add(constraint)
     
     def input_changed(self, state, value):
         """Record the change in input on the player object.
@@ -228,8 +228,7 @@ class Player(object):
         
         # Add the offset to the current position
         if self.body:
-            # TODO: Update physical representation
-            pass
+         	self.body.velocity = (offset_x, offset_y)
         else:
             self.position = (self.position[0] + offset_x * dt,
                              self.position[1] + offset_y * dt)
