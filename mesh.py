@@ -10,7 +10,7 @@ class Mesh(object):
         obj_data = open(path).read()
         texture_path = data.get("texture", "textures/default.png")
         texture_image = pyglet.image.load(texture_path)
-        self.texture = texture_image.get_mipmapped_texture()
+        self.texture = texture_image.get_texture()
         
         # We can't start putting together the actual vertex data until we've
         # read the whole file, so populate these lists with data from the file
