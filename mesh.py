@@ -31,8 +31,11 @@ class Mesh(object):
                     # Subtract one from indexes because they start at one
                     vertex_data = [int(string_rep) - 1 for
                                    string_rep in vertex_data.split("/")]
+                    # Swap y and z because we're using z as up
+                    vertex_data = (vertex_data[0], vertex_data[2],
+                                   vertex_data[1])
                     # vertex_index, normal_index, tex_coord_index = vertex_data
-                    corners.append(tuple(vertex_data))
+                    corners.append(vertex_data)
                 faces.append(tuple(corners))
             elif line.startswith("vt "):
                 # Vertex position data; get three floats
