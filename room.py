@@ -91,11 +91,11 @@ class Room(object):
             shape = pymunk.Segment(space.static_body, wall[0], wall[1], 0.0)
             space.add(shape)
     
-    def generate_wall_lightmap():
+    def generate_wall_lightmap(self):
         """Create a lightmap for the wall, and tex coords for it.
         
         """
-        height = 64.0
+        height = 32.0
         
         # Add up the wall lengths to find the width
         total_wall_length = 0.0
@@ -104,29 +104,24 @@ class Room(object):
         room_height = self.ceiling_height - self.floor_height
         width = (total_wall_length / room_height) * height
         if width > 2048.0:
+            height *= 2048.0 / width
             width = 2048.0
-        
-        # Round texture dimensions up to the next power of two
-        powers_of_two = [1]
-        while True:
-            powers_of_two.append(powers_of_two[-1] * 2)
-            if powers_of_two[-1] >= 2048:
-                break
-        for pot in powers_of_two:
-            if pot >= height:
-                tex_height = pot
-                break
-        for pot in powers_of_two:
-            if pot >= width:
-                tex_width = pot
-                break
-        
+                
         # Create texture data
-        tex_image = pyglet.image.create(tex_width, tex_height)
-        tex_data = tex_image.get_data(tex_image.format, tex_image.pitch)
+        tex_image = pyglet.image.create(int(round(width)), int(round(height)))
+        tex_width = tex_image.width
+        tex_height = tex_image.height
+        # tex_data = tex_image.get_data(tex_image.format, tex_image.pitch)
+        tex_data = ""
+        for y in range(tex_height):
+            val = float(y) / float(tex_height)
+            val = int(round(val * 255))
+            pixel_data = chr(val) * 3 + chr(255)  # RGBA
+            tex_data += pixel_data * tex_width
+        tex_image.set_data(tex_image.format, tex_image.pitch, tex_data)
         
-        
-    
+        self.wall_texture = tex_image.get_texture()
+        self.wall_texture_fit == WALL_TEXTURE_FIT_OVERALL    
         
     def generate_triangulated_data(self):
         """Generate triangles to draw floor, ceiling and walls.
@@ -207,6 +202,7 @@ class Room(object):
         
         # Now the walls. If we're okay with wraps around corners, we need to 
         # know the total wall length first.
+        # self.generate_wall_lightmap()
         if self.wall_texture_fit == WALL_TEXTURE_FIT_OVERALL:
             total_wall_length = 0.0
             for wall in self.walls:
