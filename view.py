@@ -152,57 +152,27 @@ class View(object):
                 glDisableClientState(GL_VERTEX_ARRAY)
                 glDisableClientState(GL_TEXTURE_COORD_ARRAY)
                 glDisable(texture.target)
-            
-            # # Draw the ceiling. First, setup the state
-            # glColor4f(1.0, 1.0, 1.0, 1.0)
-            # glEnable(room.ceiling_texture.target)
-            # glBindTexture(room.ceiling_texture.target, room.ceiling_texture.id)
-            # # Draw the geometry
-            # glEnableClientState(GL_VERTEX_ARRAY)
-            # glEnableClientState(GL_TEXTURE_COORD_ARRAY)
-            # glBindBuffer(GL_ARRAY_BUFFER, room.ceiling_data)
-            # glVertexPointer(3, GL_FLOAT, 5 * sizeof(GLfloat), 0)
-            # glTexCoordPointer(2, GL_FLOAT, 5 * sizeof(GLfloat),
-            #                   3 * sizeof(GLfloat))
-            # glDrawArrays(GL_TRIANGLES, 0, len(room.triangles) * 3)
-            # # Reset the state
-            # glDisableClientState(GL_VERTEX_ARRAY)
-            # glDisableClientState(GL_TEXTURE_COORD_ARRAY)
-            # glDisable(room.ceiling_texture.target)
-            # 
-            # # Draw the walls. First, setup the state
-            # glColor4f(1.0, 1.0, 1.0, 1.0)
-            # glEnable(room.ceiling_texture.target)
-            # glBindTexture(room.ceiling_texture.target, room.ceiling_texture.id)
-            # # Draw the geometry
-            # glEnableClientState(GL_VERTEX_ARRAY)
-            # glEnableClientState(GL_TEXTURE_COORD_ARRAY)
-            # glBindBuffer(GL_ARRAY_BUFFER, room.ceiling_data)
-            # glVertexPointer(3, GL_FLOAT, 5 * sizeof(GLfloat), 0)
-            # glTexCoordPointer(2, GL_FLOAT, 5 * sizeof(GLfloat),
-            #                   3 * sizeof(GLfloat))
-            # glDrawArrays(GL_TRIANGLES, 0, len(room.triangles) * 3)
-            # # Reset the state
-            # glDisableClientState(GL_VERTEX_ARRAY)
-            # glDisableClientState(GL_TEXTURE_COORD_ARRAY)
-            # glDisable(room.ceiling_texture.target)
-            # 
-            
-            
-            # Draw walls
-            glColor4f(1.0, 1.0, 1.0, 1.0)
-            if room.wall_texture:
-                glEnable(room.wall_texture.target)
-                glBindTexture(room.wall_texture.target, room.wall_texture.id)
-            glBegin(GL_TRIANGLES)
-            for wall_triangles in room.wall_triangles:
-                for triangle in wall_triangles:
-                    for vertex in triangle:
-                        glVertex3f(*vertex)
-                        glTexCoord2f(vertex[0], vertex[1])
-            glEnd()
-            if room.wall_texture:
-                glDisable(room.wall_texture.target)
+                    
+            # Draw meshes
+            for mesh in room.meshes:
+                # Setup state
+                glEnable(mesh.texture.target)
+                glBindTexture(mesh.texture.target, mesh.texture.id)
+                glPushMatrix()
+                glTranslatef(*mesh.position)
+                glEnableClientState(GL_VERTEX_ARRAY)
+                glEnableClientState(GL_TEXTURE_COORD_ARRAY)
+                # Draw the mesh
+                glBindBuffer(GL_ARRAY_BUFFER, mesh.data_vbo)
+                glVertexPointer(3, GL_FLOAT, 5 * sizeof(GLfloat), 0)
+                glTexCoordPointer(2, GL_FLOAT, 5 * sizeof(GLfloat),
+                                  3 * sizeof(GLfloat))
+                glDrawArrays(GL_TRIANGLES, 0, mesh.data_count)
+                # Reset the state
+                glDisableClientState(GL_VERTEX_ARRAY)
+                glDisableClientState(GL_TEXTURE_COORD_ARRAY)
+                glDisable(mesh.texture.target)
+                glPopMatrix()
         
         # Draw player
         player = self.game.player
@@ -240,7 +210,7 @@ class View(object):
         glDepthFunc(GL_LEQUAL)
         glPolygonOffset(1.0, 1.0)
         glEnable(GL_POLYGON_OFFSET_FILL)
-        glEnable(GL_CULL_FACE)
-        glFrontFace(GL_CW)
+        # glEnable(GL_CULL_FACE)
+        # glFrontFace(GL_CW)
 
         self.draw_func()

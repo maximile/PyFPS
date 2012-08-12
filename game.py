@@ -26,6 +26,8 @@ class Game(object):
 
     def refresh_from_files(self):
         data = json.load(open("levels/level.json", "r"))
+        
+        # Add rooms from data
         self.rooms = []
         for room_data in data["rooms"]:
             self.rooms.append(Room(room_data))

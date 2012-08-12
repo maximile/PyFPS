@@ -5,6 +5,7 @@ import pyglet
 from pyglet.gl import *
 
 import utils
+from mesh import Mesh
 
 # How to apply wall texture.
 # Overall: no seams, minimal distortion, texture can wrap over corners
@@ -76,7 +77,12 @@ class Room(object):
         glGenBuffers(1, self.floor_data_vbo)
         glGenBuffers(1, self.ceiling_data_vbo)
         glGenBuffers(1, self.wall_data_vbo)
-
+        
+        # Meshes
+        self.meshes = []
+        for mesh_data in data.get("meshes", []):
+            self.meshes.append(Mesh(mesh_data, self))
+        
         # self.triangles = []
         self.wall_triangles = []
     

@@ -60,7 +60,13 @@
                       [12.0, 12.0],
                       [9.0, 15.0],
                       [7.0, 15.0],
-                      [4.0, 12.0]]
+                      [4.0, 12.0]],
+		 "meshes": [
+			 {"path": "meshes/pipe.obj",
+			  "texture": "meshes/pipe.png",
+			  "position": [10.0, 10.0]}
+		 ]
+
 		},
 		{"floor_height": 1.7,
 		 "ceiling_height": 2.0,
