@@ -91,6 +91,43 @@ class Room(object):
             shape = pymunk.Segment(space.static_body, wall[0], wall[1], 0.0)
             space.add(shape)
     
+    def generate_wall_lightmap():
+        """Create a lightmap for the wall, and tex coords for it.
+        
+        """
+        height = 64.0
+        
+        # Add up the wall lengths to find the width
+        total_wall_length = 0.0
+        for wall in self.walls:
+            total_wall_length += utils.get_length(wall)
+        room_height = self.ceiling_height - self.floor_height
+        width = (total_wall_length / room_height) * height
+        if width > 2048.0:
+            width = 2048.0
+        
+        # Round texture dimensions up to the next power of two
+        powers_of_two = [1]
+        while True:
+            powers_of_two.append(powers_of_two[-1] * 2)
+            if powers_of_two[-1] >= 2048:
+                break
+        for pot in powers_of_two:
+            if pot >= height:
+                tex_height = pot
+                break
+        for pot in powers_of_two:
+            if pot >= width:
+                tex_width = pot
+                break
+        
+        # Create texture data
+        tex_image = pyglet.image.create(tex_width, tex_height)
+        tex_data = tex_image.get_data(tex_image.format, tex_image.pitch)
+        
+        
+    
+        
     def generate_triangulated_data(self):
         """Generate triangles to draw floor, ceiling and walls.
         
