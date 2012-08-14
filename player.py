@@ -7,6 +7,7 @@ from utils import PLAYER_COLLISION_TYPE
 # Movement properties
 WALK_SPEED = 3.0
 RUN_SPEED = 6.0
+MAX_STEP_HEIGHT = 0.5
 
 # Height properties
 HEIGHT = 1.75
@@ -24,8 +25,36 @@ def on_player_hit_wall(space, arbiter):
     player = player_shape.player
     room = wall_shape.room
     wall_index = wall_shape.wall_index
+    
+    
+    
+    # float maxPlayerFootLevel = player.pos.y+1.9;
+    
+    # Maximum height we can step up to
+    max_step_height = player.z_pos + MAX_STEP_HEIGHT
+    
     if wall_index in room.shared_walls:
+        other_room = room.shared_walls[wall_index]
+        # Check if either of the floors are higher than the player's maximum
+        # step height
+        if (room.floor_height > max_step_height or
+            other_room.floor_height > max_step_height):
+            return True
+        
+        # Check if either of the ceilings are lower the player's head
+        if (room.ceiling_height < player.head_height or
+            other_room.ceiling_height < player.head_height):
+            return True
+        
+        # Check if either of the adjoining rooms are too short
+        if (room.ceiling_height - room.floor_height < player.tallness or
+            other_room.ceiling_height - other_room.floor_height < player.tallness):
+            return True
+        
+        # It's an adjoining room we can walk into; don't collide
         return False
+    
+    # It's a solid wall; collide
     return True
 
 class Player(object):
@@ -76,11 +105,19 @@ class Player(object):
         return False
     
     @property
+    def head_height(self):
+        """Z position of the top of the player's head.
+        
+        """
+        # Add the current head height to the 
+        return self.tallness + self.z_pos
+    
+    @property
     def eye_height(self):
         """Z position of the player's eyes.
         
         """
-        # Add the current head height to the 
+        # Add the current z position to the eye height
         return self.tallness - (HEIGHT - EYE_HEIGHT) + self.z_pos
     
     @property
@@ -240,9 +277,9 @@ class Player(object):
         
         # Add the offset to the current position
         if self.body:
-         	self.dragger.velocity = (offset_x, offset_y)
-         	self.dragger.position = (self.body.position.x + offset_x * dt,
-         	                      self.body.position.y + offset_y * dt)
+            self.dragger.velocity = (offset_x, offset_y)
+            self.dragger.position = (self.body.position.x + offset_x * dt,
+                                  self.body.position.y + offset_y * dt)
         else:
             self.position = (self.position[0] + offset_x * dt,
                              self.position[1] + offset_y * dt)
