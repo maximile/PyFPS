@@ -97,9 +97,9 @@ class Player(object):
         return None
         
     def add_to_space(self, space):
-        # self.dragger = pymunk.Body(MASS, pymunk.inf)
-        # self.dragger.position = self._position
-        # space.add(self.dragger)
+        self.dragger = pymunk.Body(MASS, pymunk.inf)
+        self.dragger.position = self._position
+        space.add(self.dragger)
 
         self.body = pymunk.Body(MASS, pymunk.inf)
         self.body.position = self._position
@@ -109,8 +109,8 @@ class Player(object):
         self.shape.friction = FRICTION
         space.add(self.shape)
         
-        # constraint = pymunk.PinJoint(self.body, self.dragger)
-        # space.add(constraint)
+        constraint = pymunk.PinJoint(self.body, self.dragger)
+        space.add(constraint)
     
     def input_changed(self, state, value):
         """Record the change in input on the player object.
@@ -228,7 +228,9 @@ class Player(object):
         
         # Add the offset to the current position
         if self.body:
-         	self.body.velocity = (offset_x, offset_y)
+         	self.dragger.velocity = (offset_x, offset_y)
+         	self.dragger.position = (self.body.position.x + offset_x * dt,
+         	                      self.body.position.y + offset_y * dt)
         else:
             self.position = (self.position[0] + offset_x * dt,
                              self.position[1] + offset_y * dt)
