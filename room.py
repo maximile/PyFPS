@@ -3,6 +3,7 @@ import itertools
 import pymunk
 import pyglet
 from pyglet.gl import *
+from utils import WALL_COLLISION_TYPE
 
 import utils
 from mesh import Mesh
@@ -87,8 +88,11 @@ class Room(object):
         self.wall_triangles = []
     
     def add_to_space(self, space):
-        for wall in self.walls:
+        for i, wall in enumerate(self.walls):
             shape = pymunk.Segment(space.static_body, wall[0], wall[1], 0.0)
+            shape.collision_type = WALL_COLLISION_TYPE
+            shape.room = self
+            shape.wall_index = i
             space.add(shape)
     
     def generate_wall_lightmap(self):
@@ -407,7 +411,3 @@ class Room(object):
         
         # Check winding:
         self.check_winding()
-        
-
-
-

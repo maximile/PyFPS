@@ -2,8 +2,10 @@ import json
 import itertools
 
 from room import Room
-from player import Player
+from player import Player, on_player_hit_wall
 import pymunk
+
+from utils import WALL_COLLISION_TYPE, PLAYER_COLLISION_TYPE
 
 class Game(object):
     def __init__(self):
@@ -47,6 +49,10 @@ class Game(object):
             room.add_to_space(self.space)
         self.player.add_to_space(self.space)
         
+        # Add handler for collisions between player and walls
+        self.space.add_collision_handler(PLAYER_COLLISION_TYPE,
+                                         WALL_COLLISION_TYPE,
+                                         pre_solve=on_player_hit_wall)
 
     def update(self, dt):
         self.player.update(1.0 / 60.0)

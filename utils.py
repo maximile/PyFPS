@@ -1,5 +1,9 @@
 import math
 
+# Unique collision type identifiers
+PLAYER_COLLISION_TYPE = 1
+WALL_COLLISION_TYPE = 2
+
 def rad_to_deg(radians):
 	return radians * 57.2957795
 

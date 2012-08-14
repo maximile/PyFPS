@@ -2,6 +2,7 @@ import math
 import inputstates
 import pymunk
 import utils
+from utils import PLAYER_COLLISION_TYPE
 
 # Movement properties
 WALK_SPEED = 3.0
@@ -17,6 +18,15 @@ EYE_LIMIT = 0.2  # Minimum distance from the eye to the floor or ceiling
 MASS = 10.0
 FRICTION = 0.0
 RADIUS = 0.4
+
+def on_player_hit_wall(space, arbiter):
+    player_shape, wall_shape = arbiter.shapes
+    player = player_shape.player
+    room = wall_shape.room
+    wall_index = wall_shape.wall_index
+    if wall_index in room.shared_walls:
+        return False
+    return True
 
 class Player(object):
     def __init__(self, data):
@@ -107,6 +117,8 @@ class Player(object):
         
         self.shape = pymunk.Circle(self.body, self.radius)
         self.shape.friction = FRICTION
+        self.shape.collision_type = PLAYER_COLLISION_TYPE
+        self.shape.player = self
         space.add(self.shape)
         
         constraint = pymunk.PinJoint(self.body, self.dragger)
