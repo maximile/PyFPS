@@ -88,7 +88,7 @@ class View(object):
         glMatrixMode(GL_PROJECTION)
         glPushMatrix()
         glLoadIdentity()
-        gluPerspective(45.0, float(self.size[0]) / float(self.size[1]),
+        gluPerspective(180.0, float(self.size[0]) / float(self.size[1]),
                        0.1, 100.0)
         glMatrixMode(GL_MODELVIEW)
         glLoadIdentity()
