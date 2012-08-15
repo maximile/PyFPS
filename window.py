@@ -10,7 +10,7 @@ class Window(pyglet.window.Window):
         self.view.size = (self.width, self.height)
 
     def on_activate(self):
-        self.view.game.refresh_from_files()
+        # self.view.game.refresh_from_files()
         self.set_exclusive_mouse(True)
     
     def on_deactivate(self):

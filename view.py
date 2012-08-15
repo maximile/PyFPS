@@ -130,10 +130,7 @@ class View(object):
                                   room.floor_texture),
                                  (room.ceiling_data_vbo,
                                   room.ceiling_data_count,
-                                  room.ceiling_texture),
-                                 (room.wall_data_vbo,
-                                  room.wall_data_count,
-                                  room.wall_texture)]
+                                  room.ceiling_texture)]
             # Setup the state
             glColor4f(1.0, 1.0, 1.0, 1.0)
             for geo_vbo, count, texture in geo_count_texture:
@@ -152,6 +149,41 @@ class View(object):
                 glDisableClientState(GL_VERTEX_ARRAY)
                 glDisableClientState(GL_TEXTURE_COORD_ARRAY)
                 glDisable(texture.target)
+
+            # WALLS: Setup the state
+            glColor4f(1.0, 1.0, 1.0, 1.0)
+            # Draw the floor. First, setup the state
+            glEnable(room.wall_texture.target)
+            glActiveTexture(GL_TEXTURE0_ARB)
+            glEnable(GL_TEXTURE_2D)
+            glBindTexture(room.wall_texture.target, room.wall_texture.id)
+            glActiveTexture(GL_TEXTURE1_ARB)
+            glEnable(GL_TEXTURE_2D)
+            glBindTexture(room.lightmap_texture.target, room.lightmap_texture.id)
+            
+            # glBindTexture(room.wall_texture.target, room.wall_texture.id)
+            # Draw the geometry
+            glEnableClientState(GL_VERTEX_ARRAY)
+            glBindBuffer(GL_ARRAY_BUFFER, room.wall_data_vbo)
+            glVertexPointer(3, GL_FLOAT, 7 * sizeof(GLfloat), 0)
+            glClientActiveTexture(GL_TEXTURE0_ARB)
+            glEnableClientState(GL_TEXTURE_COORD_ARRAY)
+            glTexCoordPointer(2, GL_FLOAT, 7 * sizeof(GLfloat),
+                              3 * sizeof(GLfloat))
+            glClientActiveTexture(GL_TEXTURE1_ARB)
+            glEnableClientState(GL_TEXTURE_COORD_ARRAY)
+            glTexCoordPointer(2, GL_FLOAT, 7 * sizeof(GLfloat),
+                              5 * sizeof(GLfloat))
+            glDrawArrays(GL_TRIANGLES, 0, room.wall_data_count)
+            # Reset the state
+            glDisableClientState(GL_VERTEX_ARRAY)
+            glDisableClientState(GL_TEXTURE_COORD_ARRAY)
+            glDisable(GL_TEXTURE_2D)
+            glActiveTexture(GL_TEXTURE0_ARB)
+            glClientActiveTexture(GL_TEXTURE0_ARB)
+            glActiveTexture(GL_TEXTURE0_ARB)
+            
+            glDisable(texture.target)
                     
             # Draw meshes
             for mesh in room.meshes:
