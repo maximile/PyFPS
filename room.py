@@ -1,4 +1,5 @@
 import math
+import random
 import itertools
 import pymunk
 import pyglet
@@ -46,6 +47,7 @@ class Room(object):
                                          WALL_TEXTURE_FIT_PER_WALL)
         # Light map
         self.lightmap_texture = None
+        self.lightmap_image = None
         self.lightmap_coords = None
         
         # Texture scales (1.0 means the texture is applied to 1m squares)
@@ -179,12 +181,13 @@ class Room(object):
                 # Texel value from mean of x and y components
                 value = (x_value + y_value) / 2.0
                 # value = min(x_value, smoothed(y_value))
-                int_value = round(value * 255.0)
+                int_value = int(round(value * 255.0))
                 pixel_data = chr(int_value) * 3 + chr(255)  # RBGA
                 tex_data += pixel_data
                 
         tex_image.set_data(tex_image.format, tex_image.pitch, tex_data)
         
+        self.lightmap_image = tex_image
         self.lightmap_texture = tex_image.get_texture()
     
     def generate_triangulated_data(self):
@@ -414,6 +417,18 @@ class Room(object):
         glBindBuffer(GL_ARRAY_BUFFER, self.wall_data_vbo)
         glBufferData(GL_ARRAY_BUFFER, sizeof(wall_data), wall_data,
                      GL_STATIC_DRAW)            
+    
+    def update(self, dt):
+        data = self.lightmap_image.get_data(self.lightmap_image.format,
+                                            self.lightmap_image.pitch)
+        random_index = random.randint(0, len(data) - 1)
+        data_before = data[:random_index]
+        data_after = data[random_index + 1:]
+        data = data_before + chr(random.randint(0, 255)) + data_after
+        self.lightmap_image.set_data(self.lightmap_image.format,
+                                     self.lightmap_image.pitch, data)
+        self.lightmap_texture = self.lightmap_image.get_texture()
+        
     
     @property
     def walls(self):

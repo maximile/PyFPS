@@ -56,4 +56,6 @@ class Game(object):
 
     def update(self, dt):
         self.player.update(1.0 / 60.0)
+        for room in self.rooms:
+            room.update(dt)
         self.space.step(1.0 / 60.0)
