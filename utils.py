@@ -39,6 +39,11 @@ def get_angle(vertex_before, vertex, vertex_after):
         angle += math.pi * 2
     return angle
 
+def lerp(a, b, ratio):
+    """Linearly interpolate between a and b using the given ratio (0.0 - 1.0)
+    
+    """
+    return a + (b - a) * ratio
 
 def lines_intersect(line_one, line_two):
     """Whether the two lines cross each other.
