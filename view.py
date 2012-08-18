@@ -2,6 +2,8 @@ import math
 import pyglet
 from pyglet.gl import *
 
+from room import get_incident_fbo
+
 import utils
 from utils import rad_to_deg
 
@@ -57,8 +59,6 @@ class View(object):
                 for vertex in wall:
                     glVertex2f(*vertex)
                 glEnd()
-            
-            
         
         # Draw player
         player = self.game.player
@@ -135,8 +135,8 @@ class View(object):
             glColor4f(1.0, 1.0, 1.0, 1.0)
             for geo_vbo, count, texture in geo_count_texture:
                 # Draw the floor. First, setup the state
-                glEnable(texture.target)
-                glBindTexture(texture.target, texture.id)
+                glEnable(GL_TEXTURE_2D)
+                glBindTexture(GL_TEXTURE_2D, texture.id)
                 # Draw the geometry
                 glEnableClientState(GL_VERTEX_ARRAY)
                 glEnableClientState(GL_TEXTURE_COORD_ARRAY)
@@ -148,20 +148,19 @@ class View(object):
                 # Reset the state
                 glDisableClientState(GL_VERTEX_ARRAY)
                 glDisableClientState(GL_TEXTURE_COORD_ARRAY)
-                glDisable(texture.target)
+                glDisable(GL_TEXTURE_2D)
 
             # WALLS: Setup the state
             glColor4f(1.0, 1.0, 1.0, 1.0)
             # Draw the floor. First, setup the state
-            glEnable(room.wall_texture.target)
+            glEnable(GL_TEXTURE_2D)
             glActiveTexture(GL_TEXTURE0_ARB)
             glEnable(GL_TEXTURE_2D)
-            glBindTexture(room.wall_texture.target, room.wall_texture.id)
+            glBindTexture(GL_TEXTURE_2D, room.wall_texture.id)
             glActiveTexture(GL_TEXTURE1_ARB)
             glEnable(GL_TEXTURE_2D)
-            glBindTexture(room.lightmap_texture.target, room.lightmap_texture.id)
+            glBindTexture(GL_TEXTURE_2D, room.lightmap_texture.id)
             
-            # glBindTexture(room.wall_texture.target, room.wall_texture.id)
             # Draw the geometry
             glEnableClientState(GL_VERTEX_ARRAY)
             glBindBuffer(GL_ARRAY_BUFFER, room.wall_data_vbo)
@@ -183,13 +182,13 @@ class View(object):
             glClientActiveTexture(GL_TEXTURE0_ARB)
             glActiveTexture(GL_TEXTURE0_ARB)
             
-            glDisable(texture.target)
+            glDisable(GL_TEXTURE_2D)
                     
             # Draw meshes
             for mesh in room.meshes:
                 # Setup state
-                glEnable(mesh.texture.target)
-                glBindTexture(mesh.texture.target, mesh.texture.id)
+                glEnable(GL_TEXTURE_2D)
+                glBindTexture(GL_TEXTURE_2D, mesh.texture.id)
                 glPushMatrix()
                 glTranslatef(*mesh.position)
                 glEnableClientState(GL_VERTEX_ARRAY)
@@ -203,7 +202,7 @@ class View(object):
                 # Reset the state
                 glDisableClientState(GL_VERTEX_ARRAY)
                 glDisableClientState(GL_TEXTURE_COORD_ARRAY)
-                glDisable(mesh.texture.target)
+                glDisable(GL_TEXTURE_2D)
                 glPopMatrix()
         
         # Draw player
@@ -229,9 +228,30 @@ class View(object):
         glEnd()
         glPopMatrix()
         
+        # Do FBO stuff
+        incident_fbo, incident_tex = get_incident_fbo()
+        glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, incident_fbo)
+        glClearColor(1.0, 0.0, 0.0, 1.0)
+        glClear(GL_COLOR_BUFFER_BIT)
+        glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0)
+                
         glMatrixMode(GL_PROJECTION)
         glPopMatrix()
         glMatrixMode(GL_MODELVIEW)
+
+        # Draw FBO to screen
+        glEnable(GL_TEXTURE_2D)
+        glBindTexture(GL_TEXTURE_2D, incident_tex.id)
+        glBegin(GL_TRIANGLES)
+        glVertex2f(0,0)
+        glTexCoord2f(0,0)
+        glVertex2f(100,0)
+        glTexCoord2f(1,0)
+        glVertex2f(100,100)
+        glTexCoord2f(1,1)
+        glEnd()
+        glDisable(GL_TEXTURE_2D)
+        glBindTexture(GL_TEXTURE_2D, 0)
         
 
     def draw(self):

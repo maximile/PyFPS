@@ -4,6 +4,7 @@ import itertools
 import pymunk
 import pyglet
 from pyglet.gl import *
+
 from utils import WALL_COLLISION_TYPE
 
 import utils
@@ -16,6 +17,9 @@ from mesh import Mesh
 WALL_TEXTURE_FIT_OVERALL = "overall"
 WALL_TEXTURE_FIT_PER_WALL = "per_wall"
 
+# Radiosity settings
+INCIDENT_FBO_SIZE = 256
+
 class InvalidRoomError(Exception):
     """Raised when the room data isn't valid.
     
@@ -24,6 +28,37 @@ class InvalidRoomError(Exception):
 
 def smoothed(x):
     return -0.5 * math.cos(math.pi * x) + 0.5
+
+_incident_fbo = None
+_incident_tex = None
+def get_incident_fbo():
+    """Create a global FBO which each patch will use to render incoming light.
+    
+    """
+    global _incident_fbo
+    global _incident_tex
+    if not _incident_fbo:
+        _incident_fbo = GLuint()
+        glGenFramebuffersEXT(1, _incident_fbo)
+        glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, _incident_fbo)
+
+        # Allocate a texture and add to the frame buffer
+        if not INCIDENT_FBO_SIZE % 4 == 0:
+            raise ValueError("Incident FBO dimension must be a multiple of 4")
+        # if not utils.is_valid_texture_dimension(INCIDENT_FBO_SIZE):
+        #     raise ValueError("Incident FBO dimension must be a power of 2")
+        _incident_tex = pyglet.image.Texture.create_for_size(GL_TEXTURE_2D,
+                            INCIDENT_FBO_SIZE, INCIDENT_FBO_SIZE, GL_RGBA)
+        glBindTexture(GL_TEXTURE_2D, _incident_tex.id)
+        glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT,
+            GL_COLOR_ATTACHMENT0_EXT, GL_TEXTURE_2D, _incident_tex.id, 0)
+
+        status = glCheckFramebufferStatusEXT(GL_FRAMEBUFFER_EXT)
+        assert status == GL_FRAMEBUFFER_COMPLETE_EXT
+        glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0)
+        
+    return _incident_fbo, _incident_tex
+    
 
 class Room(object):
     def __init__(self, data):
@@ -46,9 +81,12 @@ class Room(object):
         self.wall_texture_fit = data.get("wall_texture_fit",
                                          WALL_TEXTURE_FIT_PER_WALL)
         # Light map
-        self.lightmap_texture = None
-        self.lightmap_image = None
-        self.lightmap_coords = None
+        # self.lightmap_texture = None
+        # self.lightmap_image = None
+        # self.lightmap_coords = None
+        self.lightmap_fbo = None
+        self.init_lightmap()
+        
         
         # Texture scales (1.0 means the texture is applied to 1m squares)
         self.floor_texture_scale = data.get("floor_texture_scale", 1.0)
@@ -95,6 +133,12 @@ class Room(object):
         # self.triangles = []
         self.wall_triangles = []
     
+    def init_lightmap(self):
+        self.lightmap_fbo = GLuint()
+        glGenFramebuffersEXT(1, self.lightmap_fbo)
+        glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, self.lightmap_fbo)
+        
+    
     def add_to_space(self, space):
         for i, wall in enumerate(self.walls):
             shape = pymunk.Segment(space.static_body, wall[0], wall[1], 0.0)
@@ -138,7 +182,7 @@ class Room(object):
             end = progress + utils.get_length(wall) / total_wall_length
             self.lightmap_coords.append((start, end))
             progress = end
-        
+                
         # Get the angle at corners to generate some crude AO
         brightness_values = []
         for i, wall in enumerate(self.walls):
@@ -419,15 +463,16 @@ class Room(object):
                      GL_STATIC_DRAW)            
     
     def update(self, dt):
-        data = self.lightmap_image.get_data(self.lightmap_image.format,
-                                            self.lightmap_image.pitch)
-        random_index = random.randint(0, len(data) - 1)
-        data_before = data[:random_index]
-        data_after = data[random_index + 1:]
-        data = data_before + chr(random.randint(0, 255)) + data_after
-        self.lightmap_image.set_data(self.lightmap_image.format,
-                                     self.lightmap_image.pitch, data)
-        self.lightmap_texture = self.lightmap_image.get_texture()
+        return
+        # data = self.lightmap_image.get_data(self.lightmap_image.format,
+        #                                     self.lightmap_image.pitch)
+        # random_index = random.randint(0, len(data) - 1)
+        # data_before = data[:random_index]
+        # data_after = data[random_index + 1:]
+        # data = data_before + chr(random.randint(0, 255)) + data_after
+        # self.lightmap_image.set_data(self.lightmap_image.format,
+        #                              self.lightmap_image.pitch, data)
+        # self.lightmap_texture = self.lightmap_image.get_texture()
         
     
     @property
