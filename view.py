@@ -11,6 +11,11 @@ SHARED_WALL_COLOR = 0.7, 0.7, 0.7, 1.0
 WALL_COLOR = 0.0, 0.0, 0.0, 1.0
 PLAYER_COLOR = 0.0, 0.7, 0.1, 1.0
 
+# View modes
+VIEW_2D = "VIEW_2D"
+VIEW_3D = "VIEW_3D"
+VIEW_INCIDENT = "VIEW_INCIDENT"
+
 class View(object):
     def __init__(self, game):
         self.size = (0, 0)
@@ -19,7 +24,7 @@ class View(object):
         self.a_down = False
         self.s_down = False
         self.d_down = False
-        self.draw_func = self.draw_2d
+        self.view_mode = VIEW_2D
         
     def update_player_movement_from_keys(self):
         movement_speed = 3.0
@@ -83,7 +88,7 @@ class View(object):
         glEnd()
         glPopMatrix()
 
-    def draw_3d(self):
+    def project_3d(self):
         glViewport(0, 0, self.size[0], self.size[1])
         glMatrixMode(GL_PROJECTION)
         glPushMatrix()
@@ -99,7 +104,8 @@ class View(object):
         glRotatef(rad_to_deg(player.heading), 0.0, 0.0, -1.0)
         glTranslatef(-player.position[0], -player.position[1],
                      -player.eye_height)
-        
+
+    def draw_3d(self):        
         for room in self.game.rooms:
             for i, wall in enumerate(room.walls):
                 if i in room.shared_walls:
@@ -228,31 +234,77 @@ class View(object):
         glEnd()
         glPopMatrix()
         
-        # Do FBO stuff
-        incident_fbo, incident_tex = get_incident_fbo()
-        glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, incident_fbo)
-        glClearColor(1.0, 0.0, 0.0, 1.0)
-        glClear(GL_COLOR_BUFFER_BIT)
-        glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0)
-                
-        glMatrixMode(GL_PROJECTION)
-        glPopMatrix()
-        glMatrixMode(GL_MODELVIEW)
+#         # Do FBO stuff
+#         incident_fbo, incident_tex = get_incident_fbo()
+#         glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, incident_fbo)
+#         glClearColor(1.0, 0.0, 0.0, 1.0)
+#         glClear(GL_COLOR_BUFFER_BIT)
+#         glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0)
+#                 
+#         glMatrixMode(GL_PROJECTION)
+#         glPopMatrix()
+#         glMatrixMode(GL_MODELVIEW)
+# 
+#         # Draw FBO to screen
+#         glEnable(GL_TEXTURE_2D)
+#         glBindTexture(GL_TEXTURE_2D, incident_tex.id)
+#         glBegin(GL_TRIANGLES)
+#         glVertex2f(0,0)
+#         glTexCoord2f(0,0)
+#         glVertex2f(100,0)
+#         glTexCoord2f(1,0)
+#         glVertex2f(100,100)
+#         glTexCoord2f(1,1)
+#         glEnd()
+#         glDisable(GL_TEXTURE_2D)
+#         glBindTexture(GL_TEXTURE_2D, 0)
+    
+    test = 0.0
+    def project_incident(self):
+        # Get camera angle
+        room = self.game.rooms[3]
+        wall = room.walls[0]
+        self.test += 0.02
+        if self.test > 1.0:
+            self.test = -1.0
+        lerp_val = abs(self.test)
 
-        # Draw FBO to screen
-        glEnable(GL_TEXTURE_2D)
-        glBindTexture(GL_TEXTURE_2D, incident_tex.id)
-        glBegin(GL_TRIANGLES)
-        glVertex2f(0,0)
-        glTexCoord2f(0,0)
-        glVertex2f(100,0)
-        glTexCoord2f(1,0)
-        glVertex2f(100,100)
-        glTexCoord2f(1,1)
-        glEnd()
-        glDisable(GL_TEXTURE_2D)
-        glBindTexture(GL_TEXTURE_2D, 0)
+        position = (utils.lerp(wall[0][0], wall[1][0], lerp_val),
+                    utils.lerp(wall[0][1], wall[1][1], lerp_val),
+                    (room.floor_height + room.ceiling_height) / 2.0)
+        wall_angle = math.atan2(wall[1][1] - wall[0][1],
+                                wall[1][0] - wall[0][0])
+        camera_angle = wall_angle - math.pi / 2.0
         
+        D = 256
+        view_setups = [
+               # Front
+               {"viewport": (D/4, D/4, D/2, D/2), "pitch": 0.0, "heading": 0.0},
+                # Top
+               {"viewport": (D/4, 3*D/4, D/2, D/2), "pitch": 90.0, "heading": 0.0},
+                # Bottom
+               {"viewport": (D/4, -D/4, D/2, D/2), "pitch": -90.0, "heading": 0.0},
+                # Left
+               {"viewport": (-D/4, D/4, D/2, D/2), "pitch": 0.0, "heading": 90.0},
+                # Right
+               {"viewport": (3*D/4, D/4, D/2, D/2), "pitch": 0.0, "heading": -90.0},
+        ]
+        
+        for setup in view_setups:
+            # Setup matrix
+            glViewport(*setup["viewport"])
+            glMatrixMode(GL_PROJECTION)
+            glPushMatrix()
+            glLoadIdentity()
+            gluPerspective(90.0, 1.0, 0.1, 100.0)
+            glMatrixMode(GL_MODELVIEW)
+            glLoadIdentity()
+            glRotatef(90.0, 0.0, 1.0, 0.0)
+            glRotatef(-90.0, 1.0, 0.0, 0.0)
+            glRotatef(setup["pitch"], 0.0, 1.0, 0.0)
+            glRotatef(rad_to_deg(camera_angle) + setup["heading"], 0.0, 0.0, -1.0)
+            glTranslatef(-position[0], -position[1], -position[2])
+            self.draw_3d()
 
     def draw(self):
         glClearColor(1.0, 1.0, 1.0, 1.0)
@@ -264,5 +316,12 @@ class View(object):
         glEnable(GL_POLYGON_OFFSET_FILL)
         glEnable(GL_CULL_FACE)
         glFrontFace(GL_CW)
-
-        self.draw_func()
+        
+        if self.view_mode == VIEW_2D:
+            self.draw_2d()
+        elif self.view_mode == VIEW_3D:
+            self.project_3d()
+            self.draw_3d()
+        elif self.view_mode == VIEW_INCIDENT:
+            self.project_incident()
+            

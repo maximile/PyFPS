@@ -193,7 +193,6 @@ class Room(object):
                 brightness_values.append(1.0)
             else:
                 brightness_values.append(1.0 + angle / math.pi)
-        print brightness_values
         
         # Create texture data
         tex_image = pyglet.image.create(int(round(width)), int(round(height)))

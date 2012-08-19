@@ -1,6 +1,8 @@
 import pyglet.window
 from pyglet.window import key
 
+from view import VIEW_2D, VIEW_3D, VIEW_INCIDENT
+
 import inputstates
 
 class Window(pyglet.window.Window):
@@ -35,9 +37,11 @@ class Window(pyglet.window.Window):
         elif symbol == key.SPACE:
             self.view.game.player.input_changed(inputstates.JUMP, True)
         elif symbol == key._1:
-            self.view.draw_func = self.view.draw_2d
+            self.view.view_mode = VIEW_2D
         elif symbol == key._3:
-            self.view.draw_func = self.view.draw_3d
+            self.view.view_mode = VIEW_3D
+        elif symbol == key._4:
+            self.view.view_mode = VIEW_INCIDENT
         else:
             return
         self.view.update_player_movement_from_keys()
