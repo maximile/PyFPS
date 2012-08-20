@@ -13,6 +13,11 @@ def main():
     view = View(game)
     window = Window(view=view, width=800, height=500)
     pyglet.clock.schedule_interval(game.update, 1.0 / 60.0)
+    
+    import radiosity
+    map = radiosity.get_shape_compensation_map()
+    map.save("/tmp/map.png")
+    
     pyglet.app.run()
 
 if __name__ == "__main__":

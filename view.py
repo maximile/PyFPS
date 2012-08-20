@@ -241,10 +241,10 @@ class View(object):
 #         glClear(GL_COLOR_BUFFER_BIT)
 #         glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0)
 #                 
-#         glMatrixMode(GL_PROJECTION)
-#         glPopMatrix()
-#         glMatrixMode(GL_MODELVIEW)
-# 
+        glMatrixMode(GL_PROJECTION)
+        glPopMatrix()
+        glMatrixMode(GL_MODELVIEW)
+
 #         # Draw FBO to screen
 #         glEnable(GL_TEXTURE_2D)
 #         glBindTexture(GL_TEXTURE_2D, incident_tex.id)
