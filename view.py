@@ -25,6 +25,7 @@ class View(object):
         self.s_down = False
         self.d_down = False
         self.view_mode = VIEW_2D
+        self.first_time = True
         
     def update_player_movement_from_keys(self):
         movement_speed = 3.0
@@ -40,13 +41,13 @@ class View(object):
             x_speed -= movement_speed
         self.game.player.movement = (x_speed, y_speed)        
     
-    def draw_2d(self):
+    def project_2d(self):
         glLoadIdentity()
-
-        scale = 10.0
         glViewport(0, 0, self.size[0], self.size[1])
         glOrtho(0.0, 0.1, 0.0, 0.1, -1.0, 1.0)
-        
+    
+    def draw_2d(self):
+        glDisable(GL_DEPTH_TEST)
         for room in self.game.rooms:
             glColor4f(0.8, 1.0, 0.9, 1.0)
             for triangle in room.triangles:
@@ -79,7 +80,6 @@ class View(object):
             theta = 2 * math.pi * (i / float(point_count))
             glVertex2f(radius * math.cos(theta), radius * math.sin(theta))
         glEnd()
-            
         glBegin(GL_LINES)
         glVertex2f(-radius, 0.0)
         glVertex2f(radius * 2.5, 0.0)
@@ -91,7 +91,6 @@ class View(object):
     def project_3d(self):
         glViewport(0, 0, self.size[0], self.size[1])
         glMatrixMode(GL_PROJECTION)
-        glPushMatrix()
         glLoadIdentity()
         gluPerspective(45.0, float(self.size[0]) / float(self.size[1]),
                        0.1, 100.0)
@@ -105,30 +104,10 @@ class View(object):
         glTranslatef(-player.position[0], -player.position[1],
                      -player.eye_height)
 
-    def draw_3d(self):        
+    def draw_3d(self):
+        glEnable(GL_DEPTH_TEST)
+             
         for room in self.game.rooms:
-            for i, wall in enumerate(room.walls):
-                if i in room.shared_walls:
-                    glColor4f(*SHARED_WALL_COLOR)
-                else:
-                    glColor4f(*WALL_COLOR)
-                glBegin(GL_LINES)
-                for vertex in wall:
-                    glVertex3f(vertex[0], vertex[1], room.floor_height)
-                glEnd()
-            
-            glColor4f(1.0, 0.0, 0.0, 1.0)
-            glBegin(GL_LINE_LOOP)
-            for vertex in room.vertices:
-                glVertex3f(vertex[0], vertex[1], room.ceiling_height)
-            glEnd()
-            
-            glColor4f(0.0, 0.0, 0.0, 1.0)
-            glBegin(GL_LINES)
-            for vertex in room.vertices:
-                glVertex3f(vertex[0], vertex[1], room.floor_height)
-                glVertex3f(vertex[0], vertex[1], room.ceiling_height)
-            glEnd()
 
             # Room data geometry
             geo_count_texture = [(room.floor_data_vbo,
@@ -225,39 +204,28 @@ class View(object):
             theta = 2 * math.pi * (i / float(point_count))
             glVertex2f(radius * math.cos(theta), radius * math.sin(theta))
         glEnd()
-            
-        glBegin(GL_LINES)
-        glVertex2f(-radius, 0.0)
-        glVertex2f(radius * 2.5, 0.0)
-        glVertex2f(0.0, -radius)
-        glVertex2f(0.0, radius)
-        glEnd()
         glPopMatrix()
+                
+    def draw_incident_fbo(self):
+        incident_fbo, incident_tex = get_incident_fbo()
         
-#         # Do FBO stuff
-#         incident_fbo, incident_tex = get_incident_fbo()
-#         glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, incident_fbo)
-#         glClearColor(1.0, 0.0, 0.0, 1.0)
-#         glClear(GL_COLOR_BUFFER_BIT)
-#         glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0)
-#                 
-        glMatrixMode(GL_PROJECTION)
-        glPopMatrix()
-        glMatrixMode(GL_MODELVIEW)
-
-#         # Draw FBO to screen
-#         glEnable(GL_TEXTURE_2D)
-#         glBindTexture(GL_TEXTURE_2D, incident_tex.id)
-#         glBegin(GL_TRIANGLES)
-#         glVertex2f(0,0)
-#         glTexCoord2f(0,0)
-#         glVertex2f(100,0)
-#         glTexCoord2f(1,0)
-#         glVertex2f(100,100)
-#         glTexCoord2f(1,1)
-#         glEnd()
-#         glDisable(GL_TEXTURE_2D)
-#         glBindTexture(GL_TEXTURE_2D, 0)
+        glColor4f(1.0, 1.0, 1.0, 1.0)
+        glEnable(GL_TEXTURE_2D)
+        glBindTexture(GL_TEXTURE_2D, incident_tex.id)
+        glBegin(GL_TRIANGLES)
+        glTexCoord2f(0.0, 0.0)
+        glVertex2f(2.0, 2.0)
+        glTexCoord2f(0.0, 1.0)
+        glVertex2f(2.0, 20.0)
+        glTexCoord2f(1.0, 1.0)
+        glVertex2f(20.0, 20.0)
+        glTexCoord2f(0.0, 0.0)
+        glVertex2f(2.0, 2.0)
+        glTexCoord2f(1.0, 1.0)
+        glVertex2f(20.0, 20.0)
+        glTexCoord2f(1.0, 0.0)
+        glVertex2f(20.0, 2.0)
+        glEnd()
     
     test = 0.0
     def project_incident(self):
@@ -290,11 +258,12 @@ class View(object):
                {"viewport": (3*D/4, D/4, D/2, D/2), "pitch": 0.0, "heading": -90.0},
         ]
         
+        glClearColor(0.0, 0.0, 0.0, 1.0)
+        glClear(GL_COLOR_BUFFER_BIT)
         for setup in view_setups:
             # Setup matrix
             glViewport(*setup["viewport"])
             glMatrixMode(GL_PROJECTION)
-            glPushMatrix()
             glLoadIdentity()
             gluPerspective(90.0, 1.0, 0.1, 100.0)
             glMatrixMode(GL_MODELVIEW)
@@ -316,12 +285,36 @@ class View(object):
         glEnable(GL_POLYGON_OFFSET_FILL)
         glEnable(GL_CULL_FACE)
         glFrontFace(GL_CW)
+                
+        for matrix_mode in GL_PROJECTION, GL_MODELVIEW:
+            glMatrixMode(matrix_mode)
+            glPushMatrix()
         
         if self.view_mode == VIEW_2D:
+            self.project_2d()
             self.draw_2d()
         elif self.view_mode == VIEW_3D:
             self.project_3d()
             self.draw_3d()
         elif self.view_mode == VIEW_INCIDENT:
-            self.project_incident()
+            self.project_2d()
+            self.draw_incident_fbo()
+        
+        # Draw to FBO
+        incident_fbo, incident_tex = get_incident_fbo()
+        glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, incident_fbo)
+        glClear(GL_COLOR_BUFFER_BIT)
+        self.project_incident()
+        glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0)
+        # 
+        # # Draw FBO to screen
+        # incident_fbo, incident_tex = get_incident_fbo()
+        # if self.first_time:
+        #     incident_tex.save("/tmp/fbo.png")
+        #     self.first_time = False        
+        
+        
+        for matrix_mode in GL_PROJECTION, GL_MODELVIEW:
+            glMatrixMode(matrix_mode)
+            glPopMatrix()
             
