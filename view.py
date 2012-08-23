@@ -1,5 +1,6 @@
 import math
 import pyglet
+import radiosity
 from pyglet.gl import *
 
 from room import get_incident_fbo
@@ -25,7 +26,6 @@ class View(object):
         self.s_down = False
         self.d_down = False
         self.view_mode = VIEW_2D
-        self.first_time = True
         
     def update_player_movement_from_keys(self):
         movement_speed = 3.0
@@ -48,6 +48,7 @@ class View(object):
     
     def draw_2d(self):
         glDisable(GL_DEPTH_TEST)
+        glDisable(GL_TEXTURE_2D)
         for room in self.game.rooms:
             glColor4f(0.8, 1.0, 0.9, 1.0)
             for triangle in room.triangles:
@@ -106,9 +107,10 @@ class View(object):
 
     def draw_3d(self):
         glEnable(GL_DEPTH_TEST)
-             
+        glEnable(GL_TEXTURE_2D)
+        glColor4f(1.0, 1.0, 1.0, 1.0)
+        
         for room in self.game.rooms:
-
             # Room data geometry
             geo_count_texture = [(room.floor_data_vbo,
                                   room.floor_data_count,
@@ -117,14 +119,12 @@ class View(object):
                                   room.ceiling_data_count,
                                   room.ceiling_texture)]
             # Setup the state
-            glColor4f(1.0, 1.0, 1.0, 1.0)
             for geo_vbo, count, texture in geo_count_texture:
                 # Draw the floor. First, setup the state
-                glEnable(GL_TEXTURE_2D)
                 glBindTexture(GL_TEXTURE_2D, texture.id)
-                # Draw the geometry
                 glEnableClientState(GL_VERTEX_ARRAY)
                 glEnableClientState(GL_TEXTURE_COORD_ARRAY)
+                # Draw the geometry
                 glBindBuffer(GL_ARRAY_BUFFER, geo_vbo)
                 glVertexPointer(3, GL_FLOAT, 5 * sizeof(GLfloat), 0)
                 glTexCoordPointer(2, GL_FLOAT, 5 * sizeof(GLfloat),
@@ -133,19 +133,13 @@ class View(object):
                 # Reset the state
                 glDisableClientState(GL_VERTEX_ARRAY)
                 glDisableClientState(GL_TEXTURE_COORD_ARRAY)
-                glDisable(GL_TEXTURE_2D)
 
             # WALLS: Setup the state
-            glColor4f(1.0, 1.0, 1.0, 1.0)
-            # Draw the floor. First, setup the state
-            glEnable(GL_TEXTURE_2D)
             glActiveTexture(GL_TEXTURE0_ARB)
-            glEnable(GL_TEXTURE_2D)
             glBindTexture(GL_TEXTURE_2D, room.wall_texture.id)
             glActiveTexture(GL_TEXTURE1_ARB)
             glEnable(GL_TEXTURE_2D)
             glBindTexture(GL_TEXTURE_2D, room.lightmap_texture.id)
-            
             # Draw the geometry
             glEnableClientState(GL_VERTEX_ARRAY)
             glBindBuffer(GL_ARRAY_BUFFER, room.wall_data_vbo)
@@ -160,19 +154,18 @@ class View(object):
                               5 * sizeof(GLfloat))
             glDrawArrays(GL_TRIANGLES, 0, room.wall_data_count)
             # Reset the state
+            glActiveTexture(GL_TEXTURE1_ARB)
+            glDisable(GL_TEXTURE_2D)
+            glClientActiveTexture(GL_TEXTURE1_ARB)
+            glDisableClientState(GL_TEXTURE_COORD_ARRAY)
+            glClientActiveTexture(GL_TEXTURE0_ARB)
             glDisableClientState(GL_VERTEX_ARRAY)
             glDisableClientState(GL_TEXTURE_COORD_ARRAY)
-            glDisable(GL_TEXTURE_2D)
             glActiveTexture(GL_TEXTURE0_ARB)
-            glClientActiveTexture(GL_TEXTURE0_ARB)
-            glActiveTexture(GL_TEXTURE0_ARB)
-            
-            glDisable(GL_TEXTURE_2D)
-                    
+                                
             # Draw meshes
             for mesh in room.meshes:
                 # Setup state
-                glEnable(GL_TEXTURE_2D)
                 glBindTexture(GL_TEXTURE_2D, mesh.texture.id)
                 glPushMatrix()
                 glTranslatef(*mesh.position)
@@ -187,25 +180,8 @@ class View(object):
                 # Reset the state
                 glDisableClientState(GL_VERTEX_ARRAY)
                 glDisableClientState(GL_TEXTURE_COORD_ARRAY)
-                glDisable(GL_TEXTURE_2D)
                 glPopMatrix()
-        
-        # Draw player
-        player = self.game.player
-        glColor4f(*PLAYER_COLOR)
-        glPushMatrix()
-        glTranslatef(player.position[0], player.position[1], 0.0)
-        glRotatef(rad_to_deg(player.heading), 0.0, 0.0, 1.0)
-        # Circle
-        point_count = 12
-        radius = player.radius
-        glBegin(GL_LINE_LOOP)
-        for i in range(point_count):
-            theta = 2 * math.pi * (i / float(point_count))
-            glVertex2f(radius * math.cos(theta), radius * math.sin(theta))
-        glEnd()
-        glPopMatrix()
-                
+                    
     def draw_incident_fbo(self):
         incident_fbo, incident_tex = get_incident_fbo()
         
@@ -274,15 +250,40 @@ class View(object):
             glRotatef(rad_to_deg(camera_angle) + setup["heading"], 0.0, 0.0, -1.0)
             glTranslatef(-position[0], -position[1], -position[2])
             self.draw_3d()
+        
+        # Draw map on top
+        glDisable(GL_DEPTH_TEST)
+        glMatrixMode(GL_PROJECTION)
+        glLoadIdentity()
+        glMatrixMode(GL_MODELVIEW)
+        glLoadIdentity()
+        glViewport(0, 0, D, D)
+        glOrtho(0.0, 1.0, 0.0, 1.0, -1.0, 1.0)
+                
+        compensation_tex = radiosity.get_compensation_tex()
+        glColor4f(1.0, 1.0, 1.0, 1.0)
+        glEnable(GL_TEXTURE_2D)
+        glBindTexture(GL_TEXTURE_2D, compensation_tex.id)
+        glBegin(GL_TRIANGLES)
+        glTexCoord2f(0.0, 0.0)
+        glVertex2f(0.0, 0.0)
+        glTexCoord2f(0.0, 256.0)
+        glVertex2f(0.0, D)
+        glTexCoord2f(256.0, 256.0)
+        glVertex2f(D, D)
+        glTexCoord2f(0.0, 0.0)
+        glVertex2f(0.0, 0.0)
+        glTexCoord2f(1.0, 1.0)
+        glVertex2f(D, D)
+        glTexCoord2f(1.0, 0.0)
+        glVertex2f(D, 0.0)
+        glEnd()
 
     def draw(self):
         glClearColor(1.0, 1.0, 1.0, 1.0)
         glClear(GL_COLOR_BUFFER_BIT)
         glClear(GL_DEPTH_BUFFER_BIT)
         glEnable(GL_DEPTH_TEST)
-        glDepthFunc(GL_LEQUAL)
-        glPolygonOffset(1.0, 1.0)
-        glEnable(GL_POLYGON_OFFSET_FILL)
         glEnable(GL_CULL_FACE)
         glFrontFace(GL_CW)
                 
@@ -305,14 +306,7 @@ class View(object):
         glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, incident_fbo)
         glClear(GL_COLOR_BUFFER_BIT)
         self.project_incident()
-        glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0)
-        # 
-        # # Draw FBO to screen
-        # incident_fbo, incident_tex = get_incident_fbo()
-        # if self.first_time:
-        #     incident_tex.save("/tmp/fbo.png")
-        #     self.first_time = False        
-        
+        glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0)        
         
         for matrix_mode in GL_PROJECTION, GL_MODELVIEW:
             glMatrixMode(matrix_mode)

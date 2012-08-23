@@ -54,21 +54,23 @@ def get_quadrant(texel):
             return None
         return BOTTOM
     return FRONT
-    
 
-_SHAPE_COMPENSATION_MAP = None
-def get_shape_compensation_map():
+def get_compensation_tex():
+    return get_shape_compensation_tex()
+
+_SHAPE_COMPENSATION_TEX = None
+def get_shape_compensation_tex():
     """Greyscale image which should be multiplied with the incident light
     to compensate for the hemucube distortion.
     
     """
-    if _SHAPE_COMPENSATION_MAP:
-        return _SHAPE_COMPENSATION_MAP
+    global _SHAPE_COMPENSATION_TEX
+    if _SHAPE_COMPENSATION_TEX:
+        return _SHAPE_COMPENSATION_TEX
     
     # Not been generated yet; create a new one
-    global _SHAPE_COMPENSATION_MAP
-    _SHAPE_COMPENSATION_MAP = pyglet.image.create(INCIDENT_SAMPLE_SIZE,
-                                                  INCIDENT_SAMPLE_SIZE)
+    shape_compensation_map = pyglet.image.create(INCIDENT_SAMPLE_SIZE,
+                                                 INCIDENT_SAMPLE_SIZE)
     data = ""
     
     # Pixels on a surface of the hemicube are multiplied by the cosine of the 
@@ -96,8 +98,9 @@ def get_shape_compensation_map():
             pixel_data = chr(int_value) * 3 + chr(255)  # RGBA
             data += pixel_data
             
-    _SHAPE_COMPENSATION_MAP.set_data(_SHAPE_COMPENSATION_MAP.format,
-                                     _SHAPE_COMPENSATION_MAP.pitch, data)
-    return _SHAPE_COMPENSATION_MAP
+    shape_compensation_map.set_data(shape_compensation_map.format,
+                                    shape_compensation_map.pitch, data)
+    _SHAPE_COMPENSATION_TEX = shape_compensation_map.get_texture()
+    return _SHAPE_COMPENSATION_TEX
     
             
