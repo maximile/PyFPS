@@ -161,15 +161,34 @@ class Radiosity(object):
                 texture = self.sample_tex_b
             glBindTexture(GL_TEXTURE_2D, texture.id)
             utils.draw_rect()
-        # 
+        
         # The target texture now contains a tiny 4x4 hemicube in the corner.
         # Read the values back.
-        # pixel_data = (GLuint * 4 * 4)(0)
-        # glReadPixels(0, 0, 4, 4, GL_RGB, GL_UNSIGNED_INT, pixel_data)
-        # print pixel_data
-
+        pixel_data = (GLubyte * (4 * 4 * 4))(0)
+        glReadPixels(0, 0, 4, 4, GL_RGBA, GL_UNSIGNED_BYTE, pixel_data)
+        
         # Reset the state
         glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0)
+        
+        # Average the RGB values for the cubemap (so ignore the corner pixels)
+        red_value = 0
+        green_value = 0
+        blue_value = 0
+        for y in xrange(4):
+            for x in xrange(4):
+                if y in (0, 3) and x in (0, 3):
+                    # Ignore corner pixels
+                    continue
+                pixel_index = y * 4 + x
+                red_value += pixel_data[pixel_index]
+                green_value += pixel_data[pixel_index + 1]
+                blue_value += pixel_data[pixel_index + 2]
+        red_average = red_value / 12.0
+        green_average = green_value / 12.0
+        blue_average = blue_value / 12.0
+        incident_light = (red_average, green_average, blue_average)
+
+        return incident_light
         
     def get_quadrant(self, pixel):
         """Given coords for the whole incident sample, return the quadrant.

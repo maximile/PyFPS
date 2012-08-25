@@ -217,7 +217,7 @@ class View(object):
             self.draw_incident_fbo()
         
         # Sample for lightmap
-        test_room = self.game.rooms[2]
+        test_room = self.game.rooms[3]
         test_height = (test_room.floor_height + test_room.ceiling_height) / 2.0        
         test_wall = test_room.walls[2]
         # radiosity.udpate_lightmap(test_room.walls[2], test_height, self.draw_3d)
