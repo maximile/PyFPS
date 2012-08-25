@@ -111,16 +111,19 @@ class Room(object):
         around the z axis; walls are always vertical)
         
         """
-        map_coords = (texel[0] / float(self.lightmap.width),
-                      texel[1] / float(self.lightmap.height))
+        # Get the texel in texture map space (0.0-1.0). Add 0.5 to use the
+        # center of the texel instead of the corner.
+        map_coords = ((texel[0] + 0.5) / float(self.lightmap_image.width),
+                      (texel[1] + 0.5) / float(self.lightmap_image.height))
+        
         # Find out which wall it's on
-        for i, lightmap_wall in self.lightmap_walls:
+        for i, lightmap_wall in enumerate(self.lightmap_walls):
             if lightmap_wall[0] <= map_coords[0] < lightmap_wall[1]:
                 break
         else:
             # Texel isn't applied to any wall
             return None
-        wall = self.walls[0]
+        wall = self.walls[i]
         
         # Find out how far along the wall it is
         ratio = ((map_coords[0] - lightmap_wall[0]) /
@@ -135,7 +138,8 @@ class Room(object):
         z = utils.lerp(self.floor_height, self.ceiling_height, height_ratio)
         
         position = x, y, z
-        normal = math.atan2(wall[1][1] - wall[0][1], wall[1][0] - wall[0][0])
+        wall_angle = math.atan2(wall[1][1] - wall[0][1], wall[1][0] - wall[0][0])
+        normal = wall_angle - math.pi / 2.0
         return position, normal
     
     def add_to_space(self, space):
@@ -171,66 +175,14 @@ class Room(object):
         if width > 2048.0:
             height *= 2048.0 / width
             width = 2048.0
-        
-        # Create UV coords along the X axis
-        self.lightmap_coords = []
-        progress = 0.0  # Keep track of how far along we are
-        ratio = total_wall_length / width
-        for i, wall in enumerate(self.walls):
-            start = progress
-            end = progress + utils.get_length(wall[0], wall[1]) / total_wall_length
-            self.lightmap_coords.append((start, end))
-            progress = end
                 
-        # Get the angle at corners to generate some crude AO
-        brightness_values = []
-        for i, wall in enumerate(self.walls):
-            wall_before = self.walls[i-1]
-            angle = utils.get_angle(wall_before[0], wall[0], wall[1])
-            if angle > 0:
-                # Reflex angle, no occlusion
-                brightness_values.append(1.0)
-            else:
-                brightness_values.append(1.0 + angle / math.pi)
-        
-        # Create texture data
+        # Create texture data (fill with black)
         tex_image = pyglet.image.create(int(round(width)), int(round(height)))
-        tex_data = ""
-        for y in xrange(int(height)):
-            y_value = float(y) / height
-            for x in xrange(int(width)):
-                x_fraction = float(x) / width
-                # Find out which wall we're on
-                for i, wall in enumerate(self.walls):
-                    test_coords = self.lightmap_coords[i]
-                    if test_coords[0] <= x_fraction < test_coords[1]:
-                        wall_index = i
-                        break
-                # Find out how far along that wall we are
-                wall_fraction = ((x_fraction - test_coords[0]) /
-                                 (test_coords[1] - test_coords[0]))
-                brightness_start = brightness_values[wall_index]
-                try:
-                    brightness_end = brightness_values[wall_index + 1]
-                except IndexError:
-                    brightness_end = brightness_values[0]
-                # Lerp between the two brighnesses
-                x_value = (wall_fraction * (brightness_end - brightness_start) +
-                           brightness_start)
-                # Longer walls are less affected by occlusion at the corners
-                exposure = 1.0 - abs(0.5 - wall_fraction) * 2.0  #  0 - 1 - 0
-                x_value = max(smoothed(x_value), smoothed(exposure))
-                # Texel value from mean of x and y components
-                value = (x_value + y_value) / 2.0
-                # value = min(x_value, smoothed(y_value))
-                int_value = int(round(value * 255.0))
-                pixel_data = chr(int_value) * 3 + chr(255)  # RBGA
-                tex_data += pixel_data
-                
+        tex_data = (chr(0) * 3 + chr(255)) * tex_image.width * tex_image.height
         tex_image.set_data(tex_image.format, tex_image.pitch, tex_data)
         
         self.lightmap_image = tex_image
-        self.lightmap_texture = tex_image.get_texture()
+        self.lightmap_texture = tex_image.get_texture()        
     
     def generate_wall_tex_coords(self):
         """For each point along the walls, generate texture coordinates and

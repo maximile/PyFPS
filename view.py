@@ -1,4 +1,5 @@
 import math
+import random
 import pyglet
 from radiosity import Radiosity
 from pyglet.gl import *
@@ -95,7 +96,7 @@ class View(object):
         glMatrixMode(GL_PROJECTION)
         glLoadIdentity()
         gluPerspective(45.0, float(self.size[0]) / float(self.size[1]),
-                       0.1, 100.0)
+                       0.001, 100.0)
         glMatrixMode(GL_MODELVIEW)
         glLoadIdentity()
         player = self.game.player
@@ -193,7 +194,8 @@ class View(object):
         glBindTexture(GL_TEXTURE_2D, self.radiosity.sample_tex_b.id)
         utils.draw_rect((22.0, 2.0), (9.0, 9.0))
     
-    test_val = 0.0
+    test_texel_y = 0
+    test_texel_x = 350
     def draw(self):
         glClearColor(1.0, 1.0, 1.0, 1.0)
         glClear(GL_COLOR_BUFFER_BIT)
@@ -218,23 +220,44 @@ class View(object):
         
         # Sample for lightmap
         test_room = self.game.rooms[3]
-        test_height = (test_room.floor_height + test_room.ceiling_height) / 2.0        
-        test_wall = test_room.walls[2]
-        # radiosity.udpate_lightmap(test_room.walls[2], test_height, self.draw_3d)
-        # Get camera angle
-        self.test_val += 0.02
-        if self.test_val > 1.0:
-            self.test_val = -1.0
-        lerp_val = abs(self.test_val)
-
-        position = (utils.lerp(test_wall[0][0], test_wall[1][0], lerp_val),
-                    utils.lerp(test_wall[0][1], test_wall[1][1], lerp_val),
-                    test_height)
-        wall_angle = math.atan2(test_wall[1][1] - test_wall[0][1],
-                                test_wall[1][0] - test_wall[0][0])
-        heading = wall_angle - math.pi / 2.0
+        test_lightmap = test_room.lightmap_image
+        self.test_texel_y += 1
+        if self.test_texel_y >= test_lightmap.height:
+            self.test_texel_y = 0
+            self.test_texel_x += 1
+        texel_index = self.test_texel_y * test_lightmap.width + self.test_texel_x
+        # self.test_texel_index = random.randint(0, test_lightmap.width * test_lightmap.height)
+        texel_y = texel_index // test_lightmap.width
+        texel_x = texel_index % test_lightmap.width
+        # texel_y = self.test_texel_index // test_lightmap.width
+        # texel_x = self.test_texel_index % test_lightmap.width
+        texel = texel_x, texel_y
+        position, normal = test_room.get_position_for_wall_lightmap_texel(texel)        
+        incident = self.radiosity.sample(position, normal, 0.0)
         
-        self.radiosity.sample(position, heading, 0.0)
+        data = test_room.lightmap_image.get_data(test_room.lightmap_image.format,
+                                                 test_room.lightmap_image.pitch)
+        data_before = data[:texel_index * 4]
+        data_after = data[(texel_index + 1) * 4:]
+        
+        incident_data = ""
+        for channel_value in incident:
+            int_value = int(round(channel_value * 255.0))
+            incident_data += chr(int_value)
+        incident_data += chr(255)  # Alpha
+        
+        data = data_before + incident_data + data_after
+        test_room.lightmap_image.set_data(test_room.lightmap_image.format,
+                                          test_room.lightmap_image.pitch, data)
+        test_room.lightmap_texture = test_room.lightmap_image.get_texture()
+        glActiveTexture(GL_TEXTURE1_ARB)
+        glBindTexture(GL_TEXTURE_2D, test_room.lightmap_texture.id)
+        glEnable(GL_TEXTURE_2D)
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE)
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE)
+        glDisable(GL_TEXTURE_2D)
+        glActiveTexture(GL_TEXTURE0_ARB)
+        
         
         for matrix_mode in GL_PROJECTION, GL_MODELVIEW:
             glMatrixMode(matrix_mode)

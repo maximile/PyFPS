@@ -93,9 +93,10 @@ class Radiosity(object):
             glViewport(*setup["viewport"])
             glMatrixMode(GL_PROJECTION)
             glLoadIdentity()
-            gluPerspective(90.0, 1.0, 0.1, 100.0)
+            gluPerspective(90.0, 1.0, 0.001, 100.0)
             glMatrixMode(GL_MODELVIEW)
             glLoadIdentity()
+            glEnable(GL_DEPTH_TEST)
             glRotatef(90.0, 0.0, 1.0, 0.0)
             glRotatef(-90.0, 1.0, 0.0, 0.0)
             glRotatef(utils.rad_to_deg(pitch) + setup["pitch"],
@@ -180,14 +181,26 @@ class Radiosity(object):
                     # Ignore corner pixels
                     continue
                 pixel_index = y * 4 + x
+                pixel_index *= 4  # 4 channels
                 red_value += pixel_data[pixel_index]
                 green_value += pixel_data[pixel_index + 1]
                 blue_value += pixel_data[pixel_index + 2]
-        # We've sampled 12 pixels. Divide by 255 to normalise.
-        red_average = red_value / 12.0 / 255.0
-        green_average = green_value / 12.0 / 255.0
-        blue_average = blue_value / 12.0 / 255.0
+        # We've sampled 12 pixels. Divide by 255 to normalise, and divide
+        # by a constant to correct for the multiplier map
+        maximum = 0.40751633986928104
+        red_average = red_value / 12.0 / 255.0 / 0.40751633986928104
+        green_average = green_value / 12.0 / 255.0 / 0.40751633986928104
+        blue_average = blue_value / 12.0 / 255.0 / 0.40751633986928104
         incident_light = (red_average, green_average, blue_average)
+
+        # # Save the image
+        # if target == self.sample_fbo_b:
+        #     texture = self.sample_tex_b
+        # else:
+        #     texture = self.sample_tex
+        # texture.save("/tmp/map.png")
+        # print incident_light
+        # raise RuntimeError()
 
         return incident_light
         
@@ -281,21 +294,30 @@ class Radiosity(object):
         """
         tex_fbo_list = []
         for size in self.sample_size, self.sample_size // 2:
+            # Create the texture
+            tex = pyglet.image.Texture.create_for_size(GL_TEXTURE_2D, size, size,
+                                                       GL_RGBA)
+            glBindTexture(GL_TEXTURE_2D, tex.id)
+            # We'll be scaling it down to average the pixels, so use linear
+            # minification.
+            glEnable(GL_TEXTURE_2D)
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP)
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP)
+                                                       
             # Create the FBO
             fbo = GLuint()
             glGenFramebuffersEXT(1, fbo)
             glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, fbo)
             
-            # Create the texture
-            tex = pyglet.image.Texture.create_for_size(GL_TEXTURE_2D, size, size,
-                                                       GL_RGBA)
-            # Attach it to the FBO
+            # Attach the texture to the FBO
             glBindTexture(GL_TEXTURE_2D, tex.id)
             glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT,
                                       GL_TEXTURE_2D, tex.id, 0)
             status = glCheckFramebufferStatusEXT(GL_FRAMEBUFFER_EXT)
             assert status == GL_FRAMEBUFFER_COMPLETE_EXT
             
+
             # Reset the state
             glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0)
             
