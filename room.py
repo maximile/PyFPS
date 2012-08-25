@@ -125,7 +125,7 @@ class Room(object):
         # Add up the wall lengths to find the width
         total_wall_length = 0.0
         for wall in self.walls:
-            total_wall_length += utils.get_length(wall)
+            total_wall_length += utils.get_length(wall[0], wall[1])
         room_height = self.ceiling_height - self.floor_height
         width = (total_wall_length / room_height) * height
         
@@ -148,7 +148,7 @@ class Room(object):
         ratio = total_wall_length / width
         for i, wall in enumerate(self.walls):
             start = progress
-            end = progress + utils.get_length(wall) / total_wall_length
+            end = progress + utils.get_length(wall[0], wall[1]) / total_wall_length
             self.lightmap_coords.append((start, end))
             progress = end
                 
@@ -285,7 +285,7 @@ class Room(object):
         if self.wall_texture_fit == WALL_TEXTURE_FIT_OVERALL:
             total_wall_length = 0.0
             for wall in self.walls:
-                total_wall_length += utils.get_length(wall)
+                total_wall_length += utils.get_length(wall[0], wall[1])
             # Also keep track of the length of wall covered
             wall_covered = 0.0
         
@@ -294,7 +294,7 @@ class Room(object):
         room_height = self.ceiling_height - self.floor_height
         for i, wall in enumerate(self.walls):
             # Get the texture x coords
-            wall_length = utils.get_length(wall)
+            wall_length = utils.get_length(wall[0], wall[1])
             if self.wall_texture_fit == WALL_TEXTURE_FIT_PER_WALL:
                 # Ratio of room height to wall length determines how many 
                 # times the texture repeats.

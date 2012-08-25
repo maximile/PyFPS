@@ -96,12 +96,12 @@ def lines_intersect(line_one, line_two):
     else:
         return False
 
-def get_length(points):
+def get_length(point_a, point_b):
     """Distance between two 2D points.
     
     """
-    x_offset = points[1][0] - points[0][0]
-    y_offset = points[1][1] - points[0][1]
+    x_offset = point_b[0] - point_a[0]
+    y_offset = point_b[1] - point_a[1]
     return math.sqrt(x_offset * x_offset + y_offset * y_offset)
 
 def triangulate(vertices):
@@ -186,17 +186,17 @@ def draw_rect(origin=(0.0, 0.0), size=(1.0, 1.0),
     
     # Draw
     glBegin(mode)
-    glTexCoord2f(left, bottom)
-    glVertex2f(tex_left, tex_bottom)
-    glTexCoord2f(left, top)
-    glVertex2f(tex_left, tex_top)
-    glTexCoord2f(right, top)
-    glVertex2f(tex_right, tex_top)
-    glTexCoord2f(left, bottom)
-    glVertex2f(tex_left, tex_bottom)
-    glTexCoord2f(right, top)
-    glVertex2f(tex_right, tex_top)
-    glTexCoord2f(right, bottom)
-    glVertex2f(tex_right, tex_bottom)
+    glTexCoord2f(tex_left, tex_bottom)
+    glVertex2f(left, bottom)
+    glTexCoord2f(tex_left, tex_top)
+    glVertex2f(left, top)
+    glTexCoord2f(tex_right, tex_top)
+    glVertex2f(right, top)
+    glTexCoord2f(tex_left, tex_bottom)
+    glVertex2f(left, bottom)
+    glTexCoord2f(tex_right, tex_top)
+    glVertex2f(right, top)
+    glTexCoord2f(tex_right, tex_bottom)
+    glVertex2f(right, bottom)
     glEnd()
     

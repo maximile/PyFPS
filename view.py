@@ -1,6 +1,6 @@
 import math
 import pyglet
-import radiosity
+from radiosity import Radiosity
 from pyglet.gl import *
 
 import utils
@@ -24,6 +24,9 @@ class View(object):
         self.s_down = False
         self.d_down = False
         self.view_mode = VIEW_2D
+        
+        # Object for managing radiosity
+        self.radiosity = Radiosity(self.draw_3d)
         
     def update_player_movement_from_keys(self):
         movement_speed = 3.0
@@ -181,26 +184,16 @@ class View(object):
                 glPopMatrix()
                     
     def draw_incident_fbo(self):
-        incident_fbo, incident_tex = radiosity.get_incident_fbo()
-        
+        glClearColor(0.0, 0.0, 0.0, 1.0)       
+        glClear(GL_COLOR_BUFFER_BIT)
         glColor4f(1.0, 1.0, 1.0, 1.0)
         glEnable(GL_TEXTURE_2D)
-        glBindTexture(GL_TEXTURE_2D, incident_tex.id)
-        glBegin(GL_TRIANGLES)
-        glTexCoord2f(0.0, 0.0)
-        glVertex2f(2.0, 2.0)
-        glTexCoord2f(0.0, 1.0)
-        glVertex2f(2.0, 20.0)
-        glTexCoord2f(1.0, 1.0)
-        glVertex2f(20.0, 20.0)
-        glTexCoord2f(0.0, 0.0)
-        glVertex2f(2.0, 2.0)
-        glTexCoord2f(1.0, 1.0)
-        glVertex2f(20.0, 20.0)
-        glTexCoord2f(1.0, 0.0)
-        glVertex2f(20.0, 2.0)
-        glEnd()
+        glBindTexture(GL_TEXTURE_2D, self.radiosity.sample_tex.id)
+        utils.draw_rect((2.0, 2.0), (18.0, 18.0))
+        glBindTexture(GL_TEXTURE_2D, self.radiosity.sample_tex_b.id)
+        utils.draw_rect((22.0, 2.0), (9.0, 9.0))
     
+    test_val = 0.0
     def draw(self):
         glClearColor(1.0, 1.0, 1.0, 1.0)
         glClear(GL_COLOR_BUFFER_BIT)
@@ -223,10 +216,25 @@ class View(object):
             self.project_2d()
             self.draw_incident_fbo()
         
-        # Draw to FBO
+        # Sample for lightmap
         test_room = self.game.rooms[2]
         test_height = (test_room.floor_height + test_room.ceiling_height) / 2.0        
-        radiosity.udpate_lightmap(test_room.walls[2], test_height, self.draw_3d)
+        test_wall = test_room.walls[2]
+        # radiosity.udpate_lightmap(test_room.walls[2], test_height, self.draw_3d)
+        # Get camera angle
+        self.test_val += 0.02
+        if self.test_val > 1.0:
+            self.test_val = -1.0
+        lerp_val = abs(self.test_val)
+
+        position = (utils.lerp(test_wall[0][0], test_wall[1][0], lerp_val),
+                    utils.lerp(test_wall[0][1], test_wall[1][1], lerp_val),
+                    test_height)
+        wall_angle = math.atan2(test_wall[1][1] - test_wall[0][1],
+                                test_wall[1][0] - test_wall[0][0])
+        heading = wall_angle - math.pi / 2.0
+        
+        self.radiosity.sample(position, heading, 0.0)
         
         for matrix_mode in GL_PROJECTION, GL_MODELVIEW:
             glMatrixMode(matrix_mode)
