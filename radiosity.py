@@ -183,9 +183,10 @@ class Radiosity(object):
                 red_value += pixel_data[pixel_index]
                 green_value += pixel_data[pixel_index + 1]
                 blue_value += pixel_data[pixel_index + 2]
-        red_average = red_value / 12.0
-        green_average = green_value / 12.0
-        blue_average = blue_value / 12.0
+        # We've sampled 12 pixels. Divide by 255 to normalise.
+        red_average = red_value / 12.0 / 255.0
+        green_average = green_value / 12.0 / 255.0
+        blue_average = blue_value / 12.0 / 255.0
         incident_light = (red_average, green_average, blue_average)
 
         return incident_light

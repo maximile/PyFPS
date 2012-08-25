@@ -17,9 +17,6 @@ from mesh import Mesh
 WALL_TEXTURE_FIT_OVERALL = "overall"
 WALL_TEXTURE_FIT_PER_WALL = "per_wall"
 
-# Radiosity settings
-INCIDENT_FBO_SIZE = 256
-
 class InvalidRoomError(Exception):
     """Raised when the room data isn't valid.
     
@@ -48,14 +45,7 @@ class Room(object):
         wall_texture_image = pyglet.image.load(wall_texture_path)
         self.wall_texture = wall_texture_image.get_mipmapped_texture()
         self.wall_texture_fit = data.get("wall_texture_fit",
-                                         WALL_TEXTURE_FIT_PER_WALL)
-        # Light map
-        # self.lightmap_texture = None
-        # self.lightmap_image = None
-        # self.lightmap_coords = None
-        self.lightmap_fbo = None
-        self.init_lightmap()
-        
+                                         WALL_TEXTURE_FIT_PER_WALL)        
         
         # Texture scales (1.0 means the texture is applied to 1m squares)
         self.floor_texture_scale = data.get("floor_texture_scale", 1.0)
@@ -68,7 +58,7 @@ class Room(object):
         self.floor_texture_angle = utils.deg_to_rad(self.floor_texture_angle)
         self.ceiling_texture_angle = utils.deg_to_rad(
                                                     self.ceiling_texture_angle)
-        
+                
         # Wall vertex data, ordered clockwise
         self.vertices = []
         for vertex in data["vertices"]:
@@ -83,6 +73,14 @@ class Room(object):
         # Walls shared with other rooms; key = wall index, value = other room
         self.shared_walls = {}
         
+        # Texture coordinates for walls (uses same indexes as self.vertices)
+        self.wall_texture_vertices = None
+        self.wall_lightmap_vertices = None
+        self.wall_texture_floor_height = None
+        self.wall_texture_ceiling_height = None
+        self.wall_lightmap_floor_height = None
+        self.wall_lightmap_ceiling_height = None
+        
         # Triangulated data (generated later)
         self.floor_data_vbo = GLuint()
         self.ceiling_data_vbo = GLuint()
@@ -94,6 +92,9 @@ class Room(object):
         glGenBuffers(1, self.ceiling_data_vbo)
         glGenBuffers(1, self.wall_data_vbo)
         
+        # Update texture and lightmap coords
+        self.generate_wall_tex_coords()
+        
         # Meshes
         self.meshes = []
         for mesh_data in data.get("meshes", []):
@@ -102,11 +103,40 @@ class Room(object):
         # self.triangles = []
         self.wall_triangles = []
     
-    def init_lightmap(self):
-        self.lightmap_fbo = GLuint()
-        glGenFramebuffersEXT(1, self.lightmap_fbo)
-        glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, self.lightmap_fbo)
+    def get_position_for_wall_lightmap_texel(self, texel):
+        """Get the position and normal for the part of the wall that the given
+        lightmap texel applies to.
         
+        Returns a position tuple (x, y, z) and a float for the normal (angle
+        around the z axis; walls are always vertical)
+        
+        """
+        map_coords = (texel[0] / float(self.lightmap.width),
+                      texel[1] / float(self.lightmap.height))
+        # Find out which wall it's on
+        for i, lightmap_wall in self.lightmap_walls:
+            if lightmap_wall[0] <= map_coords[0] < lightmap_wall[1]:
+                break
+        else:
+            # Texel isn't applied to any wall
+            return None
+        wall = self.walls[0]
+        
+        # Find out how far along the wall it is
+        ratio = ((map_coords[0] - lightmap_wall[0]) /
+                 (lightmap_wall[1] - lightmap_wall[0]))
+        # Use this to lerp along the wall
+        x = utils.lerp(wall[0][0], wall[1][0], ratio)
+        y = utils.lerp(wall[0][1], wall[1][1], ratio)
+        
+        # Lightmap texture height always reaches from floor to ceiling. Find
+        # the z value.
+        height_ratio = map_coords[1]
+        z = utils.lerp(self.floor_height, self.ceiling_height, height_ratio)
+        
+        position = x, y, z
+        normal = math.atan2(wall[1][1] - wall[0][1], wall[1][0] - wall[0][0])
+        return position, normal
     
     def add_to_space(self, space):
         for i, wall in enumerate(self.walls):
@@ -202,6 +232,74 @@ class Room(object):
         self.lightmap_image = tex_image
         self.lightmap_texture = tex_image.get_texture()
     
+    def generate_wall_tex_coords(self):
+        """For each point along the walls, generate texture coordinates and
+        lightmap coordinates.
+        
+        """
+        # Y coords for textures
+        self.wall_texture_floor_height = 0.0
+        self.wall_texture_ceiling_height = 1.0 / self.wall_texture_scale
+        self.wall_lightmap_floor_height = 0.0
+        self.wall_lightmap_ceiling_height = 1.0
+        
+        self.wall_texture_vertices = []
+        self.wall_lightmap_vertices = []
+        
+        # Always start at the left hand side
+        self.wall_texture_vertices.append(0.0)
+        self.wall_lightmap_vertices.append(0.0)
+        
+        # Add up the lengths of all the walls
+        total_wall_length = 0.0
+        for wall in self.walls:
+            total_wall_length += utils.get_length(wall[0], wall[1])
+
+        # Room height used to work out how many times we need to repeat
+        # the texture
+        room_height = self.ceiling_height - self.floor_height
+
+        # Keep track of the length of wall covered
+        wall_covered = 0.0
+        for i, wall in enumerate(self.walls):
+            # Get the texture x coords
+            wall_length = utils.get_length(wall[0], wall[1])
+            wall_covered += wall_length
+            
+            if self.wall_texture_fit == WALL_TEXTURE_FIT_PER_WALL:
+                # Ratio of room height to wall length determines how many 
+                # times the texture repeats.
+                repeat_count = round(wall_length / room_height)
+                
+                # Account for the texture's dimensions
+                repeat_count *= (float(self.wall_texture.height) /
+                                 float(self.wall_texture.width))
+                repeat_count /= self.wall_texture_scale
+                if repeat_count < 1.0:
+                    repeat_count = 1.0
+                tex_coord = repeat_count
+            elif self.wall_texture_fit == WALL_TEXTURE_FIT_OVERALL:
+                # Ratio of room height to total wall length determines how many 
+                # times the texture repeats.
+                repeat_count = round(total_wall_length / room_height)
+                
+                # Account for the texture's dimensions
+                repeat_count *= (float(self.wall_texture.height) /
+                                 float(self.wall_texture.width))
+                repeat_count /= self.wall_texture_scale
+                if repeat_count < 1.0:
+                    repeat_count = 1.0
+                tex_coord = ((wall_covered / total_wall_length) * repeat_count)
+            else:
+                raise ValueError("Unknown texture fit value: %s"
+                                 % self.wall_texture_fit)
+    
+            self.wall_texture_vertices.append(tex_coord)
+            
+            # Get lightmap coords
+            self.wall_lightmap_vertices.append(wall_covered / total_wall_length)
+        
+    
     def generate_triangulated_data(self):
         """Generate triangles to draw floor, ceiling and walls.
         
@@ -291,144 +389,101 @@ class Room(object):
         
         wall_data = []
         # Triangulate each wall
-        room_height = self.ceiling_height - self.floor_height
         for i, wall in enumerate(self.walls):
-            # Get the texture x coords
-            wall_length = utils.get_length(wall[0], wall[1])
-            if self.wall_texture_fit == WALL_TEXTURE_FIT_PER_WALL:
-                # Ratio of room height to wall length determines how many 
-                # times the texture repeats.
-                repeat_count = round(wall_length / room_height)
-                # Account for the texture's dimensions
-                repeat_count *= (float(self.wall_texture.height) /
-                                 float(self.wall_texture.width))
-                repeat_count /= self.wall_texture_scale
-                if repeat_count < 1.0:
-                    repeat_count = 1.0
-                tex_coord_left = 0.0
-                tex_coord_right = repeat_count
-            elif self.wall_texture_fit == WALL_TEXTURE_FIT_OVERALL:
-                # Keep track of the length of wall covered
-                repeat_count = round(total_wall_length / room_height)
-                # Account for the texture's dimensions
-                repeat_count *= (float(self.wall_texture.height) /
-                                 float(self.wall_texture.width))
-                repeat_count /= self.wall_texture_scale
-                if repeat_count < 1.0:
-                    repeat_count = 1.0
-                tex_coord_left = (wall_covered /
-                                              total_wall_length) * repeat_count
-                wall_covered += wall_length
-                tex_coord_right = (wall_covered /
-                                              total_wall_length) * repeat_count
-            else:
-                raise ValueError("Unknown texture fit value: %s"
-                                 % self.wall_texture_fit)
-            # Light map coordinates
-            lightmap_coord_left, lightmap_coord_right = self.lightmap_coords[i]
             # Shared walls might need to draw wall above and/or below the
             # other room.
             if i in self.shared_walls:
                 other = self.shared_walls[i]
                 # Wall above the opening?
                 if other.ceiling_height < self.ceiling_height:
-                    # Top left, going clockwise
-                    top_left = wall[0][0], wall[0][1], self.ceiling_height
-                    top_right = wall[1][0], wall[1][1], self.ceiling_height
-                    bottom_right = wall[1][0], wall[1][1], other.ceiling_height
-                    bottom_left = wall[0][0], wall[0][1], other.ceiling_height
-                    y_tex = ((other.ceiling_height - self.floor_height) /
-                             room_height)
-                    y_tex /= self.wall_texture_scale
-                    # First triangle
-                    wall_data.extend(top_left)  # Vertex
-                    wall_data.extend([tex_coord_left, 1.0 / self.wall_texture_scale])  # Tex
-                    wall_data.extend([0.0, 0.0])  # Light map, WRONG
-                    wall_data.extend(top_right)  # Vertex
-                    wall_data.extend([tex_coord_right, 1.0 / self.wall_texture_scale])  # Tex
-                    wall_data.extend([0.0, 0.0])  # Light map, WRONG
-                    wall_data.extend(bottom_right)  # Vertex
-                    wall_data.extend([tex_coord_right, y_tex])  # Tex
-                    wall_data.extend([0.0, 0.0])  # Light map, WRONG
-                    
-                    # Second triangle
-                    wall_data.extend(top_left)  # Vertex
-                    wall_data.extend([tex_coord_left, 1.0 / self.wall_texture_scale])  # Tex
-                    wall_data.extend([0.0, 0.0])  # Light map, WRONG
-                    wall_data.extend(bottom_right)  # Vertex
-                    wall_data.extend([tex_coord_right, y_tex])  # Tex
-                    wall_data.extend([0.0, 0.0])  # Light map, WRONG
-                    wall_data.extend(bottom_left)  # Vertex
-                    wall_data.extend([tex_coord_left, y_tex])  # Tex
-                    wall_data.extend([0.0, 0.0])  # Light map, WRONG
+                    quad_data = self.get_wall_triangle_data(
+                                   i, other.ceiling_height, self.ceiling_height)
+                    wall_data.extend(quad_data)
                     
                 # Wall below the opening?
                 if other.floor_height > self.floor_height:
-                    # Top left, going clockwise
-                    top_left = wall[0][0], wall[0][1], other.floor_height
-                    top_right = wall[1][0], wall[1][1], other.floor_height
-                    bottom_right = wall[1][0], wall[1][1], self.floor_height
-                    bottom_left = wall[0][0], wall[0][1], self.floor_height
-                    y_tex = ((other.floor_height - self.floor_height) /
-                             room_height)
-                    y_tex /= self.wall_texture_scale
-            
-                    # First triangle
-                    wall_data.extend(top_left)  # Vertex
-                    wall_data.extend([tex_coord_left, y_tex])  # Tex
-                    wall_data.extend([0.0, 0.0])  # Light map, WRONG
-                    wall_data.extend(top_right)  # Vertex
-                    wall_data.extend([tex_coord_right, y_tex])  # Tex
-                    wall_data.extend([0.0, 0.0])  # Light map, WRONG
-                    wall_data.extend(bottom_right)  # Vertex
-                    wall_data.extend([tex_coord_right, 0.0])  # Tex
-                    wall_data.extend([0.0, 0.0])  # Light map, WRONG
-                    # Second triangle
-                    wall_data.extend(top_left)  # Vertex
-                    wall_data.extend([tex_coord_left, y_tex])  # Tex
-                    wall_data.extend([0.0, 0.0])  # Light map, WRONG
-                    wall_data.extend(bottom_right)  # Vertex
-                    wall_data.extend([tex_coord_right, 0.0])  # Tex
-                    wall_data.extend([0.0, 0.0])  # Light map, WRONG
-                    wall_data.extend(bottom_left)  # Vertex
-                    wall_data.extend([tex_coord_left, 0.0])  # Tex
-                    wall_data.extend([0.0, 0.0])  # Light map, WRONG
+                    quad_data = self.get_wall_triangle_data(
+                                   i, self.floor_height, other.floor_height)
+                    wall_data.extend(quad_data)
             
             else:
-                # Top left, going clockwise
-                top_left = wall[0][0], wall[0][1], self.ceiling_height
-                top_right = wall[1][0], wall[1][1], self.ceiling_height
-                bottom_right = wall[1][0], wall[1][1], self.floor_height
-                bottom_left = wall[0][0], wall[0][1], self.floor_height
-                
-                # First triangle
-                wall_data.extend(top_left)  # Vertex
-                wall_data.extend([tex_coord_left, 1.0 / self.wall_texture_scale])  # Tex
-                wall_data.extend([lightmap_coord_left, 1.0])  # Light map, WRONG
-                wall_data.extend(top_right)  # Vertex
-                wall_data.extend([tex_coord_right, 1.0 / self.wall_texture_scale])  # Tex
-                wall_data.extend([lightmap_coord_right, 1.0])  # Light map, WRONG
-                wall_data.extend(bottom_right)  # Vertex
-                wall_data.extend([tex_coord_right, 0.0])  # Tex
-                wall_data.extend([lightmap_coord_right, 0.0])  # Light map, WRONG
-                # Second triangle
-                wall_data.extend(top_left)  # Vertex
-                wall_data.extend([tex_coord_left, 1.0 / self.wall_texture_scale])  # Tex
-                wall_data.extend([lightmap_coord_left, 1.0])  # Light map, WRONG
-                wall_data.extend(bottom_right)  # Vertex
-                wall_data.extend([tex_coord_right, 0.0])  # Tex
-                wall_data.extend([lightmap_coord_right, 0.0])  # Light map, WRONG
-                wall_data.extend(bottom_left)  # Vertex
-                wall_data.extend([tex_coord_left, 0.0])  # Tex
-                wall_data.extend([lightmap_coord_left, 0.0])  # Light map, WRONG
+                quad_data = self.get_wall_triangle_data(i)
+                wall_data.extend(quad_data)
         
         # Wall: put it in an array of GLfloats
-        self.wall_data_count = len(wall_data) / 5
+        self.wall_data_count = len(wall_data) // 5
         wall_data = (GLfloat * len(wall_data))(*wall_data)
         # Add the data to the FBO
         glBindBuffer(GL_ARRAY_BUFFER, self.wall_data_vbo)
         glBufferData(GL_ARRAY_BUFFER, sizeof(wall_data), wall_data,
                      GL_STATIC_DRAW)            
+    
+    def get_wall_triangle_data(self, wall_index, bottom=None, top=None):
+        """FBO data for the given wall. Includes, vertex, tex coords and
+        lightmap tex coords.
+        
+        """
+        # Vertex coordinates
+        wall = self.walls[wall_index]
+        left = wall[0]
+        right = wall[1]
+        if not bottom:
+            bottom = self.floor_height
+        if not top:
+            top = self.ceiling_height
+        
+        # We'll use the top and bottom values to get scaled texture coordinates.
+        room_height = self.ceiling_height - self.floor_height
+        top_ratio = (top - self.floor_height) / room_height
+        bottom_ratio = (bottom - self.floor_height) / room_height
+        
+        # Texture coordinates
+        tex_wall = self.texture_walls[wall_index]
+        tex_left = tex_wall[0]
+        tex_right = tex_wall[1]
+        tex_top = utils.lerp(self.wall_texture_floor_height,
+                             self.wall_texture_ceiling_height, top_ratio)
+        tex_bottom = utils.lerp(self.wall_texture_floor_height,
+                                self.wall_texture_ceiling_height, bottom_ratio)
+        
+        # Lightmap tex coords
+        lightmap_wall = self.lightmap_walls[wall_index]
+        lightmap_left = lightmap_wall[0]
+        lightmap_right = lightmap_wall[1]
+        lightmap_top = utils.lerp(self.wall_lightmap_floor_height,
+                                  self.wall_lightmap_ceiling_height, top_ratio)
+        lightmap_bottom = utils.lerp(self.wall_lightmap_floor_height,
+                             self.wall_lightmap_ceiling_height, bottom_ratio)
+
+        data = []
+        
+        # Two triangles. First:
+        data.extend((left[0], left[1], top))
+        data.extend((tex_left, tex_top))
+        data.extend((lightmap_left, lightmap_top))
+
+        data.extend((right[0], right[1], top))
+        data.extend((tex_right, tex_top))
+        data.extend((lightmap_right, lightmap_top))
+        
+        data.extend((right[0], right[1], bottom))
+        data.extend((tex_right, tex_bottom))
+        data.extend((lightmap_right, lightmap_bottom))
+        
+        # Second
+        data.extend((left[0], left[1], top))
+        data.extend((tex_left, tex_top))
+        data.extend((lightmap_left, lightmap_top))
+        
+        data.extend((right[0], right[1], bottom))
+        data.extend((tex_right, tex_bottom))
+        data.extend((lightmap_right, lightmap_bottom))
+
+        data.extend((left[0], left[1], bottom))
+        data.extend((tex_left, tex_bottom))
+        data.extend((lightmap_left, lightmap_bottom))
+        
+        return data
     
     def update(self, dt):
         return
@@ -443,6 +498,19 @@ class Room(object):
         # self.lightmap_texture = self.lightmap_image.get_texture()
         
     
+    def get_walls_from_vertices(self, vertices):
+        """Pairs of vertices making up each wall.
+        
+        """
+        walls = []
+        for i, vertex_a in enumerate(vertices):
+            try:
+                vertex_b = vertices[i + 1]
+            except IndexError:  # Loop back to the start
+                vertex_b = vertices[0]
+            walls.append((vertex_a, vertex_b))
+        return walls
+    
     @property
     def walls(self):
         """List of walls from the room's vertex data.
@@ -454,14 +522,21 @@ class Room(object):
         True
         
         """
-        walls = []
-        for i, vertex_a in enumerate(self.vertices):
-            try:
-                vertex_b = self.vertices[i + 1]
-            except IndexError:  # Loop back to the start
-                vertex_b = self.vertices[0]
-            walls.append((vertex_a, vertex_b))
-        return walls
+        return self.get_walls_from_vertices(self.vertices)
+    
+    @property
+    def texture_walls(self):
+        """Walls in texture coordinate space.
+        
+        """
+        return self.get_walls_from_vertices(self.wall_texture_vertices)
+    
+    @property
+    def lightmap_walls(self):
+        """Walls in lightmap coordinate space.
+        
+        """
+        return self.get_walls_from_vertices(self.wall_lightmap_vertices)
     
     def check_winding(self):
         """Raises InvalidRoomError if the vertices aren't wound clockwise.
