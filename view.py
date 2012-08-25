@@ -203,82 +203,6 @@ class View(object):
         glVertex2f(20.0, 2.0)
         glEnd()
     
-    test = 0.0
-    def project_incident(self):
-        # Get camera angle
-        room = self.game.rooms[3]
-        wall = room.walls[0]
-        self.test += 0.02
-        if self.test > 1.0:
-            self.test = -1.0
-        lerp_val = abs(self.test)
-
-        position = (utils.lerp(wall[0][0], wall[1][0], lerp_val),
-                    utils.lerp(wall[0][1], wall[1][1], lerp_val),
-                    (room.floor_height + room.ceiling_height) / 2.0)
-        wall_angle = math.atan2(wall[1][1] - wall[0][1],
-                                wall[1][0] - wall[0][0])
-        camera_angle = wall_angle - math.pi / 2.0
-        
-        D = 256
-        view_setups = [
-               # Front
-               {"viewport": (D/4, D/4, D/2, D/2), "pitch": 0.0, "heading": 0.0},
-                # Top
-               {"viewport": (D/4, 3*D/4, D/2, D/2), "pitch": 90.0, "heading": 0.0},
-                # Bottom
-               {"viewport": (D/4, -D/4, D/2, D/2), "pitch": -90.0, "heading": 0.0},
-                # Left
-               {"viewport": (-D/4, D/4, D/2, D/2), "pitch": 0.0, "heading": 90.0},
-                # Right
-               {"viewport": (3*D/4, D/4, D/2, D/2), "pitch": 0.0, "heading": -90.0},
-        ]
-        
-        glClearColor(0.0, 0.0, 0.0, 1.0)
-        glClear(GL_COLOR_BUFFER_BIT)
-        for setup in view_setups:
-            # Setup matrix
-            glViewport(*setup["viewport"])
-            glMatrixMode(GL_PROJECTION)
-            glLoadIdentity()
-            gluPerspective(90.0, 1.0, 0.1, 100.0)
-            glMatrixMode(GL_MODELVIEW)
-            glLoadIdentity()
-            glRotatef(90.0, 0.0, 1.0, 0.0)
-            glRotatef(-90.0, 1.0, 0.0, 0.0)
-            glRotatef(setup["pitch"], 0.0, 1.0, 0.0)
-            glRotatef(rad_to_deg(camera_angle) + setup["heading"], 0.0, 0.0, -1.0)
-            glTranslatef(-position[0], -position[1], -position[2])
-            self.draw_3d()
-        
-        # Draw map on top
-        glDisable(GL_DEPTH_TEST)
-        glMatrixMode(GL_PROJECTION)
-        glLoadIdentity()
-        glMatrixMode(GL_MODELVIEW)
-        glLoadIdentity()
-        glViewport(0, 0, D, D)
-        glOrtho(0.0, 1.0, 0.0, 1.0, -1.0, 1.0)
-                
-        compensation_tex = radiosity.get_compensation_tex()
-        glColor4f(1.0, 1.0, 1.0, 1.0)
-        glEnable(GL_TEXTURE_2D)
-        glBindTexture(GL_TEXTURE_2D, compensation_tex.id)
-        glBegin(GL_TRIANGLES)
-        glTexCoord2f(0.0, 0.0)
-        glVertex2f(0.0, 0.0)
-        glTexCoord2f(0.0, 256.0)
-        glVertex2f(0.0, D)
-        glTexCoord2f(256.0, 256.0)
-        glVertex2f(D, D)
-        glTexCoord2f(0.0, 0.0)
-        glVertex2f(0.0, 0.0)
-        glTexCoord2f(1.0, 1.0)
-        glVertex2f(D, D)
-        glTexCoord2f(1.0, 0.0)
-        glVertex2f(D, 0.0)
-        glEnd()
-
     def draw(self):
         glClearColor(1.0, 1.0, 1.0, 1.0)
         glClear(GL_COLOR_BUFFER_BIT)
@@ -305,7 +229,9 @@ class View(object):
         incident_fbo, incident_tex = get_incident_fbo()
         glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, incident_fbo)
         glClear(GL_COLOR_BUFFER_BIT)
-        self.project_incident()
+        test_room = self.game.rooms[2]
+        test_height = (test_room.floor_height + test_room.ceiling_height) / 2.0
+        radiosity.udpate_lightmap(test_room.walls[0], test_height, self.draw_3d)
         glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0)        
         
         for matrix_mode in GL_PROJECTION, GL_MODELVIEW:
