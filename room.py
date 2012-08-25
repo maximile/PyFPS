@@ -27,38 +27,7 @@ class InvalidRoomError(Exception):
     pass
 
 def smoothed(x):
-    return -0.5 * math.cos(math.pi * x) + 0.5
-
-_incident_fbo = None
-_incident_tex = None
-def get_incident_fbo():
-    """Create a global FBO which each patch will use to render incoming light.
-    
-    """
-    global _incident_fbo
-    global _incident_tex
-    if not _incident_fbo:
-        _incident_fbo = GLuint()
-        glGenFramebuffersEXT(1, _incident_fbo)
-        glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, _incident_fbo)
-
-        # Allocate a texture and add to the frame buffer
-        if not INCIDENT_FBO_SIZE % 4 == 0:
-            raise ValueError("Incident FBO dimension must be a multiple of 4")
-        # if not utils.is_valid_texture_dimension(INCIDENT_FBO_SIZE):
-        #     raise ValueError("Incident FBO dimension must be a power of 2")
-        _incident_tex = pyglet.image.Texture.create_for_size(GL_TEXTURE_2D,
-                            INCIDENT_FBO_SIZE, INCIDENT_FBO_SIZE, GL_RGBA)
-        glBindTexture(GL_TEXTURE_2D, _incident_tex.id)
-        glFramebufferTexture2DEXT(GL_FRAMEBUFFER_EXT,
-            GL_COLOR_ATTACHMENT0_EXT, GL_TEXTURE_2D, _incident_tex.id, 0)
-
-        status = glCheckFramebufferStatusEXT(GL_FRAMEBUFFER_EXT)
-        assert status == GL_FRAMEBUFFER_COMPLETE_EXT
-        glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0)
-        
-    return _incident_fbo, _incident_tex
-    
+    return -0.5 * math.cos(math.pi * x) + 0.5    
 
 class Room(object):
     def __init__(self, data):

@@ -1,4 +1,5 @@
 import math
+from pyglet.gl import *
 
 # Unique collision type identifiers
 PLAYER_COLLISION_TYPE = 1
@@ -167,5 +168,35 @@ def triangulate(vertices):
     # Remaining vertices make up the last triangle
     triangles.append(tuple(vertices))
     return triangles
+
+def draw_rect(origin=(0.0, 0.0), size=(1.0, 1.0),
+              tex_origin=(0.0, 0.0), tex_size=(1.0, 1.0), mode=GL_TRIANGLES):
+    """Use OpenGL commands to draw a rectangle with the given specifications.
     
-        
+    """
+    # Get extremes
+    left = origin[0]
+    right = origin[0] + size[0]
+    bottom = origin[1]
+    top = origin[1] + size[1]
+    tex_left = tex_origin[0]
+    tex_right = tex_origin[0] + tex_size[0]
+    tex_bottom = tex_origin[1]
+    tex_top = tex_origin[1] + tex_size[1]
+    
+    # Draw
+    glBegin(mode)
+    glTexCoord2f(left, bottom)
+    glVertex2f(tex_left, tex_bottom)
+    glTexCoord2f(left, top)
+    glVertex2f(tex_left, tex_top)
+    glTexCoord2f(right, top)
+    glVertex2f(tex_right, tex_top)
+    glTexCoord2f(left, bottom)
+    glVertex2f(tex_left, tex_bottom)
+    glTexCoord2f(right, top)
+    glVertex2f(tex_right, tex_top)
+    glTexCoord2f(right, bottom)
+    glVertex2f(tex_right, tex_bottom)
+    glEnd()
+    

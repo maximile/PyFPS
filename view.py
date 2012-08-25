@@ -3,8 +3,6 @@ import pyglet
 import radiosity
 from pyglet.gl import *
 
-from room import get_incident_fbo
-
 import utils
 from utils import rad_to_deg
 
@@ -183,7 +181,7 @@ class View(object):
                 glPopMatrix()
                     
     def draw_incident_fbo(self):
-        incident_fbo, incident_tex = get_incident_fbo()
+        incident_fbo, incident_tex = radiosity.get_incident_fbo()
         
         glColor4f(1.0, 1.0, 1.0, 1.0)
         glEnable(GL_TEXTURE_2D)
@@ -226,13 +224,9 @@ class View(object):
             self.draw_incident_fbo()
         
         # Draw to FBO
-        incident_fbo, incident_tex = get_incident_fbo()
-        glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, incident_fbo)
-        glClear(GL_COLOR_BUFFER_BIT)
         test_room = self.game.rooms[2]
-        test_height = (test_room.floor_height + test_room.ceiling_height) / 2.0
-        radiosity.udpate_lightmap(test_room.walls[0], test_height, self.draw_3d)
-        glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0)        
+        test_height = (test_room.floor_height + test_room.ceiling_height) / 2.0        
+        radiosity.udpate_lightmap(test_room.walls[2], test_height, self.draw_3d)
         
         for matrix_mode in GL_PROJECTION, GL_MODELVIEW:
             glMatrixMode(matrix_mode)
