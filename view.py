@@ -27,7 +27,7 @@ class View(object):
         self.view_mode = VIEW_2D
         
         # Object for managing radiosity
-        self.radiosity = Radiosity(self.draw_3d)
+        self.radiosity = Radiosity(self.draw_for_lightmap)
         
     def update_player_movement_from_keys(self):
         movement_speed = 3.0
@@ -107,7 +107,13 @@ class View(object):
         glTranslatef(-player.position[0], -player.position[1],
                      -player.eye_height)
 
-    def draw_3d(self):
+    def draw_for_lightmap(self):
+        """Draw the scene but only use complete lightmaps.
+        
+        """
+        self.draw_3d(in_progress_lightmaps=False)
+
+    def draw_3d(self, in_progress_lightmaps=True):
         glEnable(GL_DEPTH_TEST)
         glEnable(GL_TEXTURE_2D)
         glColor4f(1.0, 1.0, 1.0, 1.0)
@@ -141,7 +147,11 @@ class View(object):
             glBindTexture(GL_TEXTURE_2D, room.wall_texture.id)
             glActiveTexture(GL_TEXTURE1_ARB)
             glEnable(GL_TEXTURE_2D)
-            glBindTexture(GL_TEXTURE_2D, room.lightmap_texture.id)
+            if in_progress_lightmaps:
+                glBindTexture(GL_TEXTURE_2D,
+                              room.in_progress_lightmap_texture.id)
+            else:
+                glBindTexture(GL_TEXTURE_2D, room.lightmap_texture.id)
             # Draw the geometry
             glEnableClientState(GL_VERTEX_ARRAY)
             glBindBuffer(GL_ARRAY_BUFFER, room.wall_data_vbo)
@@ -195,7 +205,7 @@ class View(object):
         utils.draw_rect((22.0, 2.0), (9.0, 9.0))
     
     test_texel_y = 0
-    test_texel_x = 350
+    test_texel_x = 0
     def draw(self):
         glClearColor(1.0, 1.0, 1.0, 1.0)
         glClear(GL_COLOR_BUFFER_BIT)
@@ -220,11 +230,7 @@ class View(object):
         
         # Sample for lightmap
         test_room = self.game.rooms[3]
-        test_lightmap = test_room.lightmap_image
-        self.test_texel_y += 1
-        if self.test_texel_y >= test_lightmap.height:
-            self.test_texel_y = 0
-            self.test_texel_x += 1
+        test_lightmap = test_room.in_progress_lightmap_image
         texel_index = self.test_texel_y * test_lightmap.width + self.test_texel_x
         # self.test_texel_index = random.randint(0, test_lightmap.width * test_lightmap.height)
         texel_y = texel_index // test_lightmap.width
@@ -235,8 +241,8 @@ class View(object):
         position, normal = test_room.get_position_for_wall_lightmap_texel(texel)        
         incident = self.radiosity.sample(position, normal, 0.0)
         
-        data = test_room.lightmap_image.get_data(test_room.lightmap_image.format,
-                                                 test_room.lightmap_image.pitch)
+        data = test_lightmap.get_data(test_room.lightmap_image.format,
+                                      test_room.lightmap_image.pitch)
         data_before = data[:texel_index * 4]
         data_after = data[(texel_index + 1) * 4:]
         
@@ -247,16 +253,31 @@ class View(object):
         incident_data += chr(255)  # Alpha
         
         data = data_before + incident_data + data_after
-        test_room.lightmap_image.set_data(test_room.lightmap_image.format,
-                                          test_room.lightmap_image.pitch, data)
-        test_room.lightmap_texture = test_room.lightmap_image.get_texture()
+        test_lightmap.set_data(test_lightmap.format,
+                               test_lightmap.pitch, data)
+        test_room.in_progress_lightmap_texture = test_lightmap.get_texture()
         glActiveTexture(GL_TEXTURE1_ARB)
-        glBindTexture(GL_TEXTURE_2D, test_room.lightmap_texture.id)
+        glBindTexture(GL_TEXTURE_2D, test_room.in_progress_lightmap_texture.id)
         glEnable(GL_TEXTURE_2D)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE)
         glDisable(GL_TEXTURE_2D)
         glActiveTexture(GL_TEXTURE0_ARB)
+        
+        self.test_texel_y += 1
+        if self.test_texel_y >= test_lightmap.height:
+            self.test_texel_y = 0
+            self.test_texel_x += 1
+        if self.test_texel_x >= test_lightmap.width:
+            self.test_texel_x = 0
+            test_room.lightmap_texture =  test_lightmap.get_texture()
+            glActiveTexture(GL_TEXTURE1_ARB)
+            glBindTexture(GL_TEXTURE_2D, test_room.lightmap_texture.id)
+            glEnable(GL_TEXTURE_2D)
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE)
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE)
+            glDisable(GL_TEXTURE_2D)
+            glActiveTexture(GL_TEXTURE0_ARB)
         
         
         for matrix_mode in GL_PROJECTION, GL_MODELVIEW:

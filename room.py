@@ -45,7 +45,7 @@ class Room(object):
         wall_texture_image = pyglet.image.load(wall_texture_path)
         self.wall_texture = wall_texture_image.get_mipmapped_texture()
         self.wall_texture_fit = data.get("wall_texture_fit",
-                                         WALL_TEXTURE_FIT_PER_WALL)        
+                                         WALL_TEXTURE_FIT_PER_WALL)
         
         # Texture scales (1.0 means the texture is applied to 1m squares)
         self.floor_texture_scale = data.get("floor_texture_scale", 1.0)
@@ -58,7 +58,10 @@ class Room(object):
         self.floor_texture_angle = utils.deg_to_rad(self.floor_texture_angle)
         self.ceiling_texture_angle = utils.deg_to_rad(
                                                     self.ceiling_texture_angle)
-                
+        
+        # Light emission
+        self.emit = data.get("emit", 0.0)
+        
         # Wall vertex data, ordered clockwise
         self.vertices = []
         for vertex in data["vertices"]:
@@ -154,7 +157,7 @@ class Room(object):
         """Create a lightmap for the wall, and tex coords for it.
         
         """
-        height = 32.0
+        height = 8.0
         
         # Add up the wall lengths to find the width
         total_wall_length = 0.0
@@ -177,12 +180,22 @@ class Room(object):
             width = 2048.0
                 
         # Create texture data (fill with black)
+        emit_value = int(round(self.emit * 255.0))
+        
         tex_image = pyglet.image.create(int(round(width)), int(round(height)))
-        tex_data = (chr(0) * 3 + chr(255)) * tex_image.width * tex_image.height
+        tex_data = (chr(emit_value) * 3 + chr(255)) * tex_image.width * tex_image.height
         tex_image.set_data(tex_image.format, tex_image.pitch, tex_data)
         
         self.lightmap_image = tex_image
         self.lightmap_texture = tex_image.get_texture()        
+
+        # Another one for the in-progress light map
+        tex_image = pyglet.image.create(int(round(width)), int(round(height)))
+        tex_data = (chr(emit_value) * 3 + chr(255)) * tex_image.width * tex_image.height
+        tex_image.set_data(tex_image.format, tex_image.pitch, tex_data)
+        
+        self.in_progress_lightmap_image = tex_image
+        self.in_progress_lightmap_texture = tex_image.get_texture()        
     
     def generate_wall_tex_coords(self):
         """For each point along the walls, generate texture coordinates and
