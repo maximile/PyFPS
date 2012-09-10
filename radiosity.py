@@ -148,12 +148,16 @@ class Radiosity(object):
             glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, target)
             
             # Setup matrix
+            if target == self.sample_fbo:
+                z = 256
+            else:
+                z = 128
+            glViewport(0, 0, z, z)
             glMatrixMode(GL_PROJECTION)
             glLoadIdentity()
+            glOrtho(0.0, z, 0.0, z, -1.0, 1.0)
             glMatrixMode(GL_MODELVIEW)
-            glLoadIdentity()
-            glViewport(0, 0, size, size)
-            glOrtho(0.0, 1.0, 0.0, 1.0, -1.0, 1.0)
+            # glLoadIdentity()
         
             # Draw the other texture
             if target == self.sample_fbo_b:
@@ -161,7 +165,7 @@ class Radiosity(object):
             else:
                 texture = self.sample_tex_b
             glBindTexture(GL_TEXTURE_2D, texture.id)
-            utils.draw_rect()
+            utils.draw_rect((0,0), (size, size))
         
         # The target texture now contains a tiny 4x4 hemicube in the corner.
         # Read the values back.

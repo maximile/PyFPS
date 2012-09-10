@@ -47,6 +47,13 @@ class View(object):
         glLoadIdentity()
         glViewport(0, 0, self.size[0], self.size[1])
         glOrtho(0.0, 0.1, 0.0, 0.1, -1.0, 1.0)
+
+    def project_lightmap(self):
+        glViewport(0, 0, self.size[0], self.size[1])
+        glMatrixMode(GL_PROJECTION)
+        glLoadIdentity()
+        glOrtho(0.0, self.size[0], 0.0, self.size[1], -1.0, 1.0)
+        glMatrixMode(GL_MODELVIEW)
     
     def draw_2d(self):
         glDisable(GL_DEPTH_TEST)
@@ -200,9 +207,9 @@ class View(object):
         glColor4f(1.0, 1.0, 1.0, 1.0)
         glEnable(GL_TEXTURE_2D)
         glBindTexture(GL_TEXTURE_2D, self.radiosity.sample_tex.id)
-        utils.draw_rect((2.0, 2.0), (18.0, 18.0))
+        utils.draw_rect((0.0, 0.0), (256.0, 256.0))
         glBindTexture(GL_TEXTURE_2D, self.radiosity.sample_tex_b.id)
-        utils.draw_rect((22.0, 2.0), (9.0, 9.0))
+        utils.draw_rect((256.0, 0.0), (128.0, 128.0))
     
     test_texel_y = 0
     test_texel_x = 0
@@ -225,7 +232,7 @@ class View(object):
             self.project_3d()
             self.draw_3d()
         elif self.view_mode == VIEW_INCIDENT:
-            self.project_2d()
+            self.project_lightmap()
             self.draw_incident_fbo()
         
         # Sample for lightmap
