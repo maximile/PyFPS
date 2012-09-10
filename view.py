@@ -229,7 +229,7 @@ class View(object):
             self.draw_incident_fbo()
         
         # Sample for lightmap
-        for i in range(2):
+        for i in range(1):
             test_room = self.game.rooms[3]
             test_lightmap = test_room.in_progress_lightmap_image
             texel_index = self.test_texel_y * test_lightmap.width + self.test_texel_x
@@ -239,7 +239,16 @@ class View(object):
             # texel_y = self.test_texel_index // test_lightmap.width
             # texel_x = self.test_texel_index % test_lightmap.width
             texel = texel_x, texel_y
-            position, normal = test_room.get_position_for_wall_lightmap_texel(texel)        
+            sample_data = test_room.get_position_for_wall_lightmap_texel(texel)
+            if sample_data is None:
+                self.test_texel_y += 1
+                if self.test_texel_y >= test_lightmap.height:
+                    self.test_texel_y = 0
+                    self.test_texel_x += 1
+                if self.test_texel_x >= test_lightmap.width:
+                    self.test_texel_x = 0
+                continue
+            position, normal = sample_data
             incident = self.radiosity.sample(position, normal, 0.0)
             
             data = test_lightmap.get_data(test_room.lightmap_image.format,

@@ -139,6 +139,12 @@ class Room(object):
         # the z value.
         height_ratio = map_coords[1]
         z = utils.lerp(self.floor_height, self.ceiling_height, height_ratio)
+
+        # Skip texels that won't get drawn (because the geometry is hidden)
+        if i in self.shared_walls:
+            other = self.shared_walls[i]
+            if other.floor_height < z < other.ceiling_height:
+                return None
         
         position = x, y, z
         wall_angle = math.atan2(wall[1][1] - wall[0][1], wall[1][0] - wall[0][0])
