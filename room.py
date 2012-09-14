@@ -5,9 +5,8 @@ import pymunk
 import pyglet
 from pyglet.gl import *
 
-from utils import WALL_COLLISION_TYPE
-
 import utils
+from utils import WALL_COLLISION_TYPE
 from mesh import Mesh
 
 # How to apply wall texture.
@@ -105,6 +104,15 @@ class Room(object):
         
         # self.triangles = []
         self.wall_triangles = []
+    
+    def process_lightmap(self):
+        """Do one unit of work to improve the lightmap.
+        
+        Gets run when there's spare time at the end of a frame, so it has to
+        complete quickly. Assumes the OpenGL state is usable to draw stuff.
+        
+        """
+        
     
     def get_position_for_wall_lightmap_texel(self, texel):
         """Get the position and normal for the part of the wall that the given

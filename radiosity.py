@@ -19,17 +19,26 @@ BOTTOM = "BOTTOM"       #  2 | L F R |
 LEFT = "LEFT"           #  3 +-+ B +-+
 RIGHT = "RIGHT"         #  4   +---+
 
-# SAMPLE METHODS
+# Sample methods
 HARDWARE = "HARDWARE"
 SOFTWARE = "SOFTWARE"
+
+# Default pass information
+DEFAULT_PASSES = [0.5, 1.0, 1.0]
 
 class Radiosity(object):
     """Class for managing lightmap generation using radiosity.
     
     """
-    def __init__(self, render_func, sample_size=256, average_method=HARDWARE):
+    def __init__(self, render_func, lightmaps, sample_size=256,
+                 average_method=HARDWARE):
         # Function we call to draw the scene
         self.render_func = render_func
+        
+        # Lightmaps that need radiosity applied (list of tuples;
+        # (lightmap FBO ID, function returning camera information from a texel)
+        # TODO: details for camera information
+        self.lightmaps = lightmaps
 
         # How we'll get the average for the sample
         self.average_method = average_method
@@ -84,6 +93,15 @@ class Radiosity(object):
                "pitch": 0.0, "heading": -90.0}
         ]
         return view_setups
+
+    def do_work(self):
+        """Process one lightmap texel.
+        
+        """
+        lightmap_info = self._lightmaps[self._lightmap_index]
+        lightmap_fbo
+        
+        for lightmap_info in self.lightmaps
 
     def sample(self, position, heading, pitch):
         """Return the RGB value of the incident light at the given position.
