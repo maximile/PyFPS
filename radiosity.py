@@ -19,13 +19,20 @@ BOTTOM = "BOTTOM"       #  2 | L F R |
 LEFT = "LEFT"           #  3 +-+ B +-+
 RIGHT = "RIGHT"         #  4   +---+
 
+# SAMPLE METHODS
+HARDWARE = "HARDWARE"
+SOFTWARE = "SOFTWARE"
+
 class Radiosity(object):
     """Class for managing lightmap generation using radiosity.
     
     """
-    def __init__(self, render_func, sample_size=256):
+    def __init__(self, render_func, sample_size=256, average_method=HARDWARE):
         # Function we call to draw the scene
         self.render_func = render_func
+
+        # How we'll get the average for the sample
+        self.average_method = average_method
 
         # Check the size is valid - power of 4, less than 2048
         valid_sample_sizes = [16, 64, 256, 1024]
@@ -131,11 +138,31 @@ class Radiosity(object):
         glDisable(GL_BLEND)
         glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0)
         
-        # TEST: Manually add up all the values
+        # Get the average value of all the pixels in the sample
+        if self.average_method == HARDWARE:
+            sample_average = self.average_hardware()
+        elif self.average_method == SOFTWARE:
+            sample_average = self.average_software()
+        else:
+            raise ValueError("Unknown sample method %s" % self.average_method)
+        
+        # Divide by a constant otherwise the compensation map won't give you
+        # the full range. TODO: generate the constant
+        incident_light = [val / 0.40751633986928104 for val in sample_average]
+        return incident_light
+    
+    def average_software(self):
+        """With the scene already drawn to the main sample FBO, use the CPU to
+        get an average of the values of every pixel.
+        
+        """
+        # Get the sample data
         glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, self.sample_fbo)
         pixel_data = (GLubyte * (self.sample_size * self.sample_size * 4))(0)
         glReadPixels(0, 0, self.sample_size, self.sample_size,
                      GL_RGBA, GL_UNSIGNED_BYTE, pixel_data)
+        
+        # Add up all the data for the samples
         total_r = 0
         total_g = 0
         total_b = 0
@@ -150,90 +177,93 @@ class Radiosity(object):
                 total_g += pixel_data[pixel_index + 1]
                 total_b += pixel_data[pixel_index + 2]
                 count += 1
+        
+        # Divide to get the mean
         red_value = float(total_r) / count
         green_value = float(total_g) / count
         blue_value = float(total_b) / count
-        red_average = red_value / 255.0 / 0.40751633986928104
-        green_average = green_value / 255.0 / 0.40751633986928104
-        blue_average = blue_value / 255.0 / 0.40751633986928104
         
+        # Normalise
+        red_average = red_value / 255.0
+        green_average = green_value / 255.0
+        blue_average = blue_value / 255.0
+        
+        return (red_average, green_average, blue_average)
+    
+    def average_hardware(self):
+        """With the scene already drawn to the main sample FBO, use OpenGL to
+        get an average of the values of every pixel.
+        
+        """
+        # We have the complete cube map in the main FBO. Draw it back and forth
+        # between the two FBOs to accurately scale it down to 4x4 pixels.
+        size = self.sample_size
+        target = self.sample_fbo
+        while size > 4:
+            # Swap the target
+            if target == self.sample_fbo:
+                target = self.sample_fbo_b
+            else:
+                target = self.sample_fbo
+            # Half the size
+            size //= 2
+            
+            # Bind the target
+            glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, target)
+            
+            # Setup matrix
+            glMatrixMode(GL_PROJECTION)
+            glLoadIdentity()
+            glMatrixMode(GL_MODELVIEW)
+            glLoadIdentity()
+            glViewport(0, 0, size, size)
+            glOrtho(0.0, 1.0, 0.0, 1.0, -1.0, 1.0)
+        
+            # Draw the other texture
+            if target == self.sample_fbo_b:
+                texture = self.sample_tex
+            else:
+                texture = self.sample_tex_b
+            glBindTexture(GL_TEXTURE_2D, texture.id)
+            utils.draw_rect()
+        
+        # The target texture now contains a tiny 4x4 hemicube in the corner.
+        # Read the values back.
+        pixel_data = (GLubyte * (4 * 4 * 4))(0)
+        glReadPixels(0, 0, 4, 4, GL_RGBA, GL_UNSIGNED_BYTE, pixel_data)
+        
+        # Reset the state
         glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0)
-
-
         
-#        # We have the complete cube map in the main FBO. Draw it back and forth
-#        # between the two FBOs to accurately scale it down to 4x4 pixels.
-#        size = self.sample_size
-#        target = self.sample_fbo
-#        while size > 4:
-#            # Swap the target
-#            if target == self.sample_fbo:
-#                target = self.sample_fbo_b
-#            else:
-#                target = self.sample_fbo
-#            # Half the size
-#            size //= 2
-#            
-#            # Bind the target
-#            glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, target)
-#            
-#            # Setup matrix
-#            glMatrixMode(GL_PROJECTION)
-#            glLoadIdentity()
-#            glMatrixMode(GL_MODELVIEW)
-#            glLoadIdentity()
-#            glViewport(0, 0, size, size)
-#            glOrtho(0.0, 1.0, 0.0, 1.0, -1.0, 1.0)
-#        
-#            # Draw the other texture
-#            if target == self.sample_fbo_b:
-#                texture = self.sample_tex
-#            else:
-#                texture = self.sample_tex_b
-#            glBindTexture(GL_TEXTURE_2D, texture.id)
-#            utils.draw_rect()
-#        
-#        # The target texture now contains a tiny 4x4 hemicube in the corner.
-#        # Read the values back.
-#        pixel_data = (GLubyte * (4 * 4 * 4))(0)
-#        glReadPixels(0, 0, 4, 4, GL_RGBA, GL_UNSIGNED_BYTE, pixel_data)
-#        
-#        # Reset the state
-#        glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0)
-#        
-#        # Average the RGB values for the cubemap (so ignore the corner pixels)
-#        red_value = 0
-#        green_value = 0
-#        blue_value = 0
-#        for y in xrange(4):
-#            for x in xrange(4):
-#                if y in (0, 3) and x in (0, 3):
-#                    # Ignore corner pixels
-#                    continue
-#                pixel_index = y * 4 + x
-#                pixel_index *= 4  # 4 channels
-#                red_value += pixel_data[pixel_index]
-#                green_value += pixel_data[pixel_index + 1]
-#                blue_value += pixel_data[pixel_index + 2]
-#        # We've sampled 12 pixels. Divide by 255 to normalise, and divide
-#        # by a constant to correct for the multiplier map
-#        maximum = 0.40751633986928104
-#        red_average = red_value / 12.0 / 255.0 / 0.40751633986928104
-#        green_average = green_value / 12.0 / 255.0 / 0.40751633986928104
-#        blue_average = blue_value / 12.0 / 255.0 / 0.40751633986928104
+        # Average the RGB values for the cubemap (so ignore the corner pixels)
+        red_value = 0
+        green_value = 0
+        blue_value = 0
+        for y in xrange(4):
+            for x in xrange(4):
+                if y in (0, 3) and x in (0, 3):
+                    # Ignore corner pixels
+                    continue
+                pixel_index = y * 4 + x
+                pixel_index *= 4  # 4 channels
+                red_value += pixel_data[pixel_index]
+                green_value += pixel_data[pixel_index + 1]
+                blue_value += pixel_data[pixel_index + 2]
+        
+        # We've sampled 12 pixels. Divide to 12 to get the mean, and by 255
+        # to normalise.
+        red_value /= 12.0 * 255.0
+        green_value /= 12.0 * 255.0
+        blue_value /= 12.0 * 255.0
+        return (red_value, green_value, blue_value)
+        
+        
+        maximum = 0.40751633986928104
+        red_average = red_value / 12.0 / 255.0 / 0.40751633986928104
+        green_average = green_value / 12.0 / 255.0 / 0.40751633986928104
+        blue_average = blue_value / 12.0 / 255.0 / 0.40751633986928104
         incident_light = (red_average, green_average, blue_average)
-        print incident_light
-        # # Save the image
-        # if target == self.sample_fbo_b:
-        #     texture = self.sample_tex_b
-        # else:
-        #     texture = self.sample_tex
-        # texture.save("/tmp/map.png")
-        # print incident_light
-        # raise RuntimeError()
-
-        return incident_light
-        
+    
     def get_quadrant(self, pixel):
         """Given coords for the whole incident sample, return the quadrant.
 
