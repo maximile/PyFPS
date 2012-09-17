@@ -23,8 +23,8 @@ RIGHT = "RIGHT"         #  4   +---+
 HARDWARE = "HARDWARE"
 SOFTWARE = "SOFTWARE"
 
-# Default pass information
-DEFAULT_PASSES = [0.5, 1.0, 1.0]
+# # Default pass information
+# DEFAULT_PASSES = [0.5, 1.0, 1.0]
 
 class Radiosity(object):
     """Class for managing lightmap generation using radiosity.
@@ -38,7 +38,9 @@ class Radiosity(object):
         # Lightmaps that need radiosity applied (list of tuples;
         # (lightmap FBO ID, function returning camera information from a texel)
         # TODO: details for camera information
-        self.lightmaps = lightmaps
+        self._lightmaps_info = lightmaps
+        self._lightmap_index = 0
+        self._current_texel = (0, 0)
 
         # How we'll get the average for the sample
         self.average_method = average_method
@@ -98,10 +100,45 @@ class Radiosity(object):
         """Process one lightmap texel.
         
         """
-        lightmap_info = self._lightmaps[self._lightmap_index]
-        lightmap_fbo
-        
-        for lightmap_info in self.lightmaps
+        # Make sure there's something to do
+        if self._lightmap_index is None:
+            return
+
+        # Find the next texel we need to work on.
+        texel = self._current_texel
+        while self._lightmap_index < len(self._lightmaps_info):
+            lightmap_info = self._lightmaps_info[self._lightmap_index]
+            lightmap, camera_func = lightmap_info
+            # Next row
+            texel = (texel[0], texel[1] + 1)
+            if texel[1] >= lightmap.size[1]:
+                # Next column
+                texel = (texel[0] + 1, 0)
+            if texel[0] >= lightmap.size[0]:
+                # Next lightmap
+                lightmap.update_from_in_progress()
+                self._lightmap_index += 1
+                texel = (0, 0)
+            
+            # Get the camera position for the texel
+            camera_pos = camera_func(texel)
+            if camera_pos is None:
+                # Unused texel; no work to do, try the next one
+                continue
+            
+            # We've found a texel that needs work
+            break
+        else:
+            # Didn't find any texels that needed work; we're done
+            self._lightmap_index = None
+            print "Radiosity done"
+            return
+        # Keep track of the texel
+        self._current_texel = texel
+
+        # Sample for the lightmap
+        incident_value = self.sample(*camera_pos)
+        lightmap.set_value(texel, incident_value)            
 
     def sample(self, position, heading, pitch):
         """Return the RGB value of the incident light at the given position.

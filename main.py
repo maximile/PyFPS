@@ -11,6 +11,10 @@ def main():
     os.chdir(resources_dir)
     game = Game()
     view = View(game)
+    # Retain cycle
+    game.view = view
+    game.refresh_from_files()
+    
     window = Window(view=view, width=800, height=500)
     pyglet.clock.schedule_interval(game.update, 1.0 / 60.0)
     

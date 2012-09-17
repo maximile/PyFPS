@@ -8,6 +8,7 @@ from pyglet.gl import *
 import utils
 from utils import WALL_COLLISION_TYPE
 from mesh import Mesh
+from lightmap import Lightmap
 
 # How to apply wall texture.
 # Overall: no seams, minimal distortion, texture can wrap over corners
@@ -104,16 +105,7 @@ class Room(object):
         
         # self.triangles = []
         self.wall_triangles = []
-    
-    def process_lightmap(self):
-        """Do one unit of work to improve the lightmap.
         
-        Gets run when there's spare time at the end of a frame, so it has to
-        complete quickly. Assumes the OpenGL state is usable to draw stuff.
-        
-        """
-        
-    
     def get_position_for_wall_lightmap_texel(self, texel):
         """Get the position and normal for the part of the wall that the given
         lightmap texel applies to.
@@ -124,8 +116,8 @@ class Room(object):
         """
         # Get the texel in texture map space (0.0-1.0). Add 0.5 to use the
         # center of the texel instead of the corner.
-        map_coords = ((texel[0] + 0.5) / float(self.lightmap_image.width),
-                      (texel[1] + 0.5) / float(self.lightmap_image.height))
+        map_coords = ((texel[0] + 0.5) / float(self.wall_lightmap.size[0]),
+                      (texel[1] + 0.5) / float(self.wall_lightmap.size[1]))
         
         # Find out which wall it's on
         for i, lightmap_wall in enumerate(self.lightmap_walls):
@@ -157,7 +149,8 @@ class Room(object):
         position = x, y, z
         wall_angle = math.atan2(wall[1][1] - wall[0][1], wall[1][0] - wall[0][0])
         normal = wall_angle - math.pi / 2.0
-        return position, normal
+        pitch = 0.0  # No sloped walls
+        return position, normal, pitch
     
     def add_to_space(self, space):
         for i, wall in enumerate(self.walls):
@@ -192,25 +185,14 @@ class Room(object):
         if width > 2048.0:
             height *= 2048.0 / width
             width = 2048.0
-                
-        # Create texture data (fill with black)
-        emit_value = int(round(self.emit * 255.0))
         
-        tex_image = pyglet.image.create(int(round(width)), int(round(height)))
-        tex_data = (chr(emit_value) * 3 + chr(255)) * tex_image.width * tex_image.height
-        tex_image.set_data(tex_image.format, tex_image.pitch, tex_data)
+        # Create lightmap
+        self.wall_lightmap = Lightmap((width, height))
         
-        self.lightmap_image = tex_image
-        self.lightmap_texture = tex_image.get_texture()        
-
-        # Another one for the in-progress light map
-        tex_image = pyglet.image.create(int(round(width)), int(round(height)))
-        tex_data = (chr(emit_value) * 3 + chr(255)) * tex_image.width * tex_image.height
-        tex_image.set_data(tex_image.format, tex_image.pitch, tex_data)
+        # Info to generate radiosity
+        self.lightmaps = [(self.wall_lightmap,
+                           self.get_position_for_wall_lightmap_texel)]
         
-        self.in_progress_lightmap_image = tex_image
-        self.in_progress_lightmap_texture = tex_image.get_texture()        
-    
     def generate_wall_tex_coords(self):
         """For each point along the walls, generate texture coordinates and
         lightmap coordinates.
@@ -465,17 +447,7 @@ class Room(object):
         return data
     
     def update(self, dt):
-        return
-        # data = self.lightmap_image.get_data(self.lightmap_image.format,
-        #                                     self.lightmap_image.pitch)
-        # random_index = random.randint(0, len(data) - 1)
-        # data_before = data[:random_index]
-        # data_after = data[random_index + 1:]
-        # data = data_before + chr(random.randint(0, 255)) + data_after
-        # self.lightmap_image.set_data(self.lightmap_image.format,
-        #                              self.lightmap_image.pitch, data)
-        # self.lightmap_texture = self.lightmap_image.get_texture()
-        
+        return        
     
     def get_walls_from_vertices(self, vertices):
         """Pairs of vertices making up each wall.

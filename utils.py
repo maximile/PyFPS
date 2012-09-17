@@ -104,6 +104,22 @@ def get_length(point_a, point_b):
     y_offset = point_b[1] - point_a[1]
     return math.sqrt(x_offset * x_offset + y_offset * y_offset)
 
+def is_power_of_two(value):
+    """Whether the value is a power of two
+    
+    """
+    int_val = int(value)
+    if not int_val == value:
+        raise ValueError("Not a whole number")
+    if int_val < 2:
+        return False
+    
+    # Magic
+    if value & (value - 1) == 0:
+        return True
+    
+    return False    
+
 def triangulate(vertices):
     """List of triangles making up the given polygon.
     

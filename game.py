@@ -1,16 +1,15 @@
 import json
 import itertools
 
+import pymunk
+
+from radiosity import Radiosity
 from room import Room
 from player import Player, on_player_hit_wall
-import pymunk
 
 from utils import WALL_COLLISION_TYPE, PLAYER_COLLISION_TYPE
 
-class Game(object):
-    def __init__(self):
-        self.refresh_from_files()
-        
+class Game(object):        
     def update_shared_walls(self):
         if len(self.rooms) <2:
             return
@@ -29,6 +28,10 @@ class Game(object):
     def refresh_from_files(self):
         data = json.load(open("levels/level.json", "r"))
         
+        # Lightmaps that will have radiosity calculated, along with their 
+        # sample camera function
+        lightmaps = []
+        
         # Add rooms from data
         self.rooms = []
         for room_data in data["rooms"]:
@@ -36,6 +39,7 @@ class Game(object):
         self.update_shared_walls()
         for room in self.rooms:
             room.generate_triangulated_data()
+            lightmaps.extend(room.lightmaps)    
         
         self.player = Player(data["player"])
         self.player.game = self
@@ -53,8 +57,13 @@ class Game(object):
         self.space.add_collision_handler(PLAYER_COLLISION_TYPE,
                                          WALL_COLLISION_TYPE,
                                          pre_solve=on_player_hit_wall)
+        
+        # Object for managing radiosity
+        self.radiosity = Radiosity(self.view.draw_for_lightmap, lightmaps)
+        
 
     def update(self, dt):
+        self.radiosity.do_work()
         self.player.update(1.0 / 60.0)
         for room in self.rooms:
             room.update(dt)
