@@ -1,4 +1,5 @@
 import pyglet
+from pyglet.gl import *
 import utils
 
 class Lightmap(object):
@@ -22,25 +23,12 @@ class Lightmap(object):
         self.in_progress_image = pyglet.image.create(self.size[0], self.size[1])
         assert self.in_progress_image.format == self.format
         assert self.in_progress_image.pitch == self.pitch
-        # tex_data = ""
-        # import random
-        # for y in xrange(size[1]):
-        #     for x in xrange(size[0]):
-        #         tex_data += chr(random.randint(0, 255))
-        #         tex_data += chr(random.randint(0, 255))
-        #         tex_data += chr(random.randint(0, 255))
-        #         tex_data += chr(255)
+        tex_data = (chr(127) * 3 + chr(255)) * self.size[0] * self.size[1]
         self.in_progress_image.set_data(self.format, self.pitch, tex_data)
         
         # Get the textures
         self.texture = self.image.get_texture()
         self.in_progress_texture = self.in_progress_image.get_texture()
-
-        import random
-        for y in xrange(0, size[1], 10):
-            for x in xrange(0, size[0], 10):
-                self.set_value((x, y), (random.random(), random.random(), random.random()))
-
     
     def set_value(self, texel, value):
         """Set the in-progress value at the given texel.
@@ -66,6 +54,14 @@ class Lightmap(object):
         # Update the image
         self.in_progress_image.set_data(self.format, self.pitch, new_data)
         self.in_progress_texture = self.in_progress_image.get_texture()
+
+        # Set tex attributes
+        # We'll be scaling it down to average the pixels, so use linear
+        # minification.
+        glEnable(GL_TEXTURE_2D)
+        glBindTexture(GL_TEXTURE_2D, self.in_progress_texture.id)
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE)
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE)
     
     def update_from_in_progress(self):
         """After setting pixel data using set_value, call this to update the
@@ -82,4 +78,12 @@ class Lightmap(object):
                                                            self.pitch) 
         self.image.set_data(self.format, self.pitch, in_progress_data)
         self.texture = self.image.get_texture()
+        # Set tex attributes
+        # We'll be scaling it down to average the pixels, so use linear
+        # minification.
+        glEnable(GL_TEXTURE_2D)
+        glBindTexture(GL_TEXTURE_2D, self.texture.id)
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP)
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP)
+
         

@@ -253,7 +253,10 @@ class Radiosity(object):
         red_average = red_value / 255.0
         green_average = green_value / 255.0
         blue_average = blue_value / 255.0
-        
+
+        # Reset state        
+        glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0)
+
         return (red_average, green_average, blue_average)
     
     def average_hardware(self):
