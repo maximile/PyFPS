@@ -137,7 +137,17 @@ class Radiosity(object):
         self._current_texel = texel
 
         # Sample for the lightmap
-        incident_value = self.sample(*camera_pos)
+        for matrix_mode in GL_PROJECTION, GL_MODELVIEW:
+            glMatrixMode(matrix_mode)
+            glPushMatrix()
+
+        try:
+            incident_value = self.sample(*camera_pos)
+        finally:
+            for matrix_mode in GL_PROJECTION, GL_MODELVIEW:
+                glMatrixMode(matrix_mode)
+                glPopMatrix()
+
         lightmap.set_value(texel, incident_value)            
 
     def sample(self, position, heading, pitch):
@@ -148,6 +158,8 @@ class Radiosity(object):
         """
         # Bind the main, full-size FBO
         glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, self.sample_fbo)
+        for buffer_id in GL_COLOR_BUFFER_BIT, GL_DEPTH_BUFFER_BIT:
+            glClear(buffer_id)
 
         # Draw each face of the cube map
         for setup in self.view_setups:
@@ -185,14 +197,14 @@ class Radiosity(object):
         glBlendFunc(GL_ZERO, GL_SRC_COLOR)
         glEnable(GL_TEXTURE_2D)
         glBindTexture(GL_TEXTURE_2D, self.multiplier_map.id)
-        
+
         # Draw the map
         utils.draw_rect()
         
         # Reset the state
         glDisable(GL_BLEND)
         glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0)
-        
+
         # Get the average value of all the pixels in the sample
         if self.average_method == HARDWARE:
             sample_average = self.average_hardware()
@@ -429,6 +441,17 @@ class Radiosity(object):
             fbo = GLuint()
             glGenFramebuffersEXT(1, fbo)
             glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, fbo)
+
+            # Add a depth buffer
+            depth_buffer = GLuint()
+            glGenRenderbuffersEXT(1, depth_buffer)
+            glBindRenderbufferEXT(GL_RENDERBUFFER_EXT, depth_buffer)
+            glRenderbufferStorageEXT(GL_RENDERBUFFER_EXT, GL_DEPTH_COMPONENT,
+                                     size, size)
+            glFramebufferRenderbufferEXT(GL_FRAMEBUFFER_EXT,
+                                         GL_DEPTH_ATTACHMENT_EXT,
+                                         GL_RENDERBUFFER_EXT, depth_buffer)
+
             
             # Attach the texture to the FBO
             glBindTexture(GL_TEXTURE_2D, tex.id)
