@@ -131,7 +131,6 @@ class Radiosity(object):
         else:
             # Didn't find any texels that needed work; we're done
             self._lightmap_index = None
-            print "Radiosity done"
             return
         # Keep track of the texel
         self._current_texel = texel
@@ -324,12 +323,13 @@ class Radiosity(object):
         blue_value /= 12.0 * 255.0
         return (red_value, green_value, blue_value)
         
-        
         maximum = 0.40751633986928104
         red_average = red_value / 12.0 / 255.0 / 0.40751633986928104
         green_average = green_value / 12.0 / 255.0 / 0.40751633986928104
         blue_average = blue_value / 12.0 / 255.0 / 0.40751633986928104
         incident_light = (red_average, green_average, blue_average)
+
+        return incident_light
     
     def get_quadrant(self, pixel):
         """Given coords for the whole incident sample, return the quadrant.

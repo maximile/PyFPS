@@ -22,11 +22,25 @@ class Lightmap(object):
         self.in_progress_image = pyglet.image.create(self.size[0], self.size[1])
         assert self.in_progress_image.format == self.format
         assert self.in_progress_image.pitch == self.pitch
+        # tex_data = ""
+        # import random
+        # for y in xrange(size[1]):
+        #     for x in xrange(size[0]):
+        #         tex_data += chr(random.randint(0, 255))
+        #         tex_data += chr(random.randint(0, 255))
+        #         tex_data += chr(random.randint(0, 255))
+        #         tex_data += chr(255)
         self.in_progress_image.set_data(self.format, self.pitch, tex_data)
         
         # Get the textures
         self.texture = self.image.get_texture()
         self.in_progress_texture = self.in_progress_image.get_texture()
+
+        import random
+        for y in xrange(0, size[1], 10):
+            for x in xrange(0, size[0], 10):
+                self.set_value((x, y), (random.random(), random.random(), random.random()))
+
     
     def set_value(self, texel, value):
         """Set the in-progress value at the given texel.
@@ -43,12 +57,12 @@ class Lightmap(object):
         value_data += chr(255)  # Alpha
         
         # Replace the texel data with the new value
-        texel_index = texel[0] * self.size[0] + texel[1]
+        texel_index = texel[1] * self.size[0] + texel[0]
         data = self.in_progress_image.get_data(self.format, self.pitch)
         data_before = data[:texel_index * 4]
         data_after = data[(texel_index + 1) * 4:]
         new_data = data_before + value_data + data_after
-        
+
         # Update the image
         self.in_progress_image.set_data(self.format, self.pitch, new_data)
         self.in_progress_texture = self.in_progress_image.get_texture()
