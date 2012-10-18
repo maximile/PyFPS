@@ -7,6 +7,7 @@ Based on: http://freespace.virgin.net/hugo.elias/radiosity/radiosity.htm
 import math
 
 from pyglet.gl import *
+from pyglet.gl.glext_arb import glGenerateMipmapEXT
 import pyglet.image
 
 import view
@@ -147,6 +148,7 @@ class Radiosity(object):
                 glMatrixMode(matrix_mode)
                 glPopMatrix()
 
+        print incident_value
         lightmap.set_value(texel, incident_value)            
 
     def sample(self, position, heading, pitch):
@@ -268,33 +270,48 @@ class Radiosity(object):
         # between the two FBOs to accurately scale it down to 4x4 pixels.
         size = self.sample_size
         target = self.sample_fbo
-        while size > 4:
-            # Swap the target
-            if target == self.sample_fbo:
-                target = self.sample_fbo_b
-            else:
-                target = self.sample_fbo
-            # Half the size
-            size //= 2
+        glBindTexture(GL_TEXTURE_2D, self.sample_tex.id)
+        glGenerateMipmapEXT(GL_TEXTURE_2D)
+
+        # NEW:
+        glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, self.sample_fbo_b)
+        # Setup matrix
+        glMatrixMode(GL_PROJECTION)
+        glLoadIdentity()
+        glMatrixMode(GL_MODELVIEW)
+        glLoadIdentity()
+        glViewport(0, 0, 4, 4)
+        glOrtho(0.0, 1.0, 0.0, 1.0, -1.0, 1.0)
+        glBindTexture(GL_TEXTURE_2D, self.sample_tex.id)
+        utils.draw_rect()
+
+        # while size > 4:
+        #     # Swap the target
+        #     if target == self.sample_fbo:
+        #         target = self.sample_fbo_b
+        #     else:
+        #         target = self.sample_fbo
+        #     # Half the size
+        #     size //= 2
             
-            # Bind the target
-            glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, target)
+        #     # Bind the target
+        #     glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, target)
             
-            # Setup matrix
-            glMatrixMode(GL_PROJECTION)
-            glLoadIdentity()
-            glMatrixMode(GL_MODELVIEW)
-            glLoadIdentity()
-            glViewport(0, 0, size, size)
-            glOrtho(0.0, 1.0, 0.0, 1.0, -1.0, 1.0)
+        #     # Setup matrix
+        #     glMatrixMode(GL_PROJECTION)
+        #     glLoadIdentity()
+        #     glMatrixMode(GL_MODELVIEW)
+        #     glLoadIdentity()
+        #     glViewport(0, 0, size, size)
+        #     glOrtho(0.0, 1.0, 0.0, 1.0, -1.0, 1.0)
         
-            # Draw the other texture
-            if target == self.sample_fbo_b:
-                texture = self.sample_tex
-            else:
-                texture = self.sample_tex_b
-            glBindTexture(GL_TEXTURE_2D, texture.id)
-            utils.draw_rect()
+        #     # Draw the other texture
+        #     if target == self.sample_fbo_b:
+        #         texture = self.sample_tex
+        #     else:
+        #         texture = self.sample_tex_b
+        #     glBindTexture(GL_TEXTURE_2D, texture.id)
+        #     utils.draw_rect()
         
         # The target texture now contains a tiny 4x4 hemicube in the corner.
         # Read the values back.
@@ -436,7 +453,9 @@ class Radiosity(object):
             # We'll be scaling it down to average the pixels, so use linear
             # minification.
             glEnable(GL_TEXTURE_2D)
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
+                            GL_LINEAR_MIPMAP_NEAREST)
+            # glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP)
             glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP)
                                                        
