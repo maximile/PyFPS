@@ -148,7 +148,6 @@ class Radiosity(object):
                 glMatrixMode(matrix_mode)
                 glPopMatrix()
 
-        print incident_value
         lightmap.set_value(texel, incident_value)            
 
     def sample(self, position, heading, pitch):
@@ -266,16 +265,14 @@ class Radiosity(object):
         get an average of the values of every pixel.
         
         """
-        # We have the complete cube map in the main FBO. Draw it back and forth
-        # between the two FBOs to accurately scale it down to 4x4 pixels.
-        size = self.sample_size
-        target = self.sample_fbo
+        # Generate a mipmap of the sample buffer - the 4x4 level will contain
+        # the information we need to work out the incident.
         glBindTexture(GL_TEXTURE_2D, self.sample_tex.id)
         glGenerateMipmapEXT(GL_TEXTURE_2D)
 
-        # NEW:
+        # Draw the sample buffer to a 4x4 rect on the other buffer. Mip-mapping
+        # will mean it contains the average of the full sample buffer.
         glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, self.sample_fbo_b)
-        # Setup matrix
         glMatrixMode(GL_PROJECTION)
         glLoadIdentity()
         glMatrixMode(GL_MODELVIEW)
@@ -284,34 +281,6 @@ class Radiosity(object):
         glOrtho(0.0, 1.0, 0.0, 1.0, -1.0, 1.0)
         glBindTexture(GL_TEXTURE_2D, self.sample_tex.id)
         utils.draw_rect()
-
-        # while size > 4:
-        #     # Swap the target
-        #     if target == self.sample_fbo:
-        #         target = self.sample_fbo_b
-        #     else:
-        #         target = self.sample_fbo
-        #     # Half the size
-        #     size //= 2
-            
-        #     # Bind the target
-        #     glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, target)
-            
-        #     # Setup matrix
-        #     glMatrixMode(GL_PROJECTION)
-        #     glLoadIdentity()
-        #     glMatrixMode(GL_MODELVIEW)
-        #     glLoadIdentity()
-        #     glViewport(0, 0, size, size)
-        #     glOrtho(0.0, 1.0, 0.0, 1.0, -1.0, 1.0)
-        
-        #     # Draw the other texture
-        #     if target == self.sample_fbo_b:
-        #         texture = self.sample_tex
-        #     else:
-        #         texture = self.sample_tex_b
-        #     glBindTexture(GL_TEXTURE_2D, texture.id)
-        #     utils.draw_rect()
         
         # The target texture now contains a tiny 4x4 hemicube in the corner.
         # Read the values back.
@@ -342,14 +311,6 @@ class Radiosity(object):
         green_value /= 12.0 * 255.0
         blue_value /= 12.0 * 255.0
         return (red_value, green_value, blue_value)
-        
-        maximum = 0.40751633986928104
-        red_average = red_value / 12.0 / 255.0 / 0.40751633986928104
-        green_average = green_value / 12.0 / 255.0 / 0.40751633986928104
-        blue_average = blue_value / 12.0 / 255.0 / 0.40751633986928104
-        incident_light = (red_average, green_average, blue_average)
-
-        return incident_light
     
     def get_quadrant(self, pixel):
         """Given coords for the whole incident sample, return the quadrant.
@@ -440,12 +401,12 @@ class Radiosity(object):
     def _generate_incident_textures_and_fbos(self):
         """Two FBOs used for lightmap generation.
         
-        FBO A is the size of the incident sample; FBO B is half the size. The scene
-        is drawn to A and then 'ping-ponged' between the two to scale it to 4px.
+        The first one gets the sample buffer drawn to it. The other one is
+        4x4px and is used to work out the total incident light.
     
         """
         tex_fbo_list = []
-        for size in self.sample_size, self.sample_size // 2:
+        for size in self.sample_size, 4:
             # Create the texture
             tex = pyglet.image.Texture.create_for_size(GL_TEXTURE_2D, size, size,
                                                        GL_RGBA)
@@ -481,7 +442,6 @@ class Radiosity(object):
                                       GL_TEXTURE_2D, tex.id, 0)
             status = glCheckFramebufferStatusEXT(GL_FRAMEBUFFER_EXT)
             assert status == GL_FRAMEBUFFER_COMPLETE_EXT
-            
 
             # Reset the state
             glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0)

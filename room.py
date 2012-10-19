@@ -160,11 +160,14 @@ class Room(object):
             shape.wall_index = i
             space.add(shape)
     
+    # def generate_floor_and_ceiling_lightmaps(self):
+    #     """Create lightmaps for the floor and ceiling"""
+
     def generate_wall_lightmap(self):
         """Create a lightmap for the wall, and tex coords for it.
         
         """
-        height = 32.0
+        height = 8.0
         
         # Add up the wall lengths to find the width
         total_wall_length = 0.0
