@@ -118,21 +118,37 @@ class View(object):
             # Room data geometry
             geo_count_texture = [(room.floor_data_vbo,
                                   room.floor_data_count,
-                                  room.floor_texture),
+                                  room.floor_texture,
+                                  room.floor_lightmap),
                                  (room.ceiling_data_vbo,
                                   room.ceiling_data_count,
-                                  room.ceiling_texture)]
+                                  room.ceiling_texture,
+                                  room.ceiling_lightmap)]
             # Setup the state
-            for geo_vbo, count, texture in geo_count_texture:
+            for geo_vbo, count, texture, lightmap in geo_count_texture:
                 # Draw the floor. First, setup the state
+                glActiveTexture(GL_TEXTURE0_ARB)
                 glBindTexture(GL_TEXTURE_2D, texture.id)
+                glActiveTexture(GL_TEXTURE1_ARB)
+                glEnable(GL_TEXTURE_2D)
+                if in_progress_lightmaps:
+                    glBindTexture(GL_TEXTURE_2D,
+                                  lightmap.in_progress_texture.id)
+                else:
+                    glBindTexture(GL_TEXTURE_2D, lightmap.texture.id)
                 glEnableClientState(GL_VERTEX_ARRAY)
                 glEnableClientState(GL_TEXTURE_COORD_ARRAY)
                 # Draw the geometry
                 glBindBuffer(GL_ARRAY_BUFFER, geo_vbo)
-                glVertexPointer(3, GL_FLOAT, 5 * sizeof(GLfloat), 0)
-                glTexCoordPointer(2, GL_FLOAT, 5 * sizeof(GLfloat),
+                glVertexPointer(3, GL_FLOAT, 7 * sizeof(GLfloat), 0)
+                glClientActiveTexture(GL_TEXTURE0_ARB)
+                glEnableClientState(GL_TEXTURE_COORD_ARRAY)
+                glTexCoordPointer(2, GL_FLOAT, 7 * sizeof(GLfloat),
                                   3 * sizeof(GLfloat))
+                glClientActiveTexture(GL_TEXTURE1_ARB)
+                glEnableClientState(GL_TEXTURE_COORD_ARRAY)
+                glTexCoordPointer(2, GL_FLOAT, 7 * sizeof(GLfloat),
+                                  5 * sizeof(GLfloat))
                 glDrawArrays(GL_TRIANGLES, 0, count)
                 # Reset the state
                 glDisableClientState(GL_VERTEX_ARRAY)

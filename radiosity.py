@@ -117,7 +117,7 @@ class Radiosity(object):
                 texel = (texel[0] + 1, 0)
             if texel[0] >= lightmap.size[0]:
                 # Next lightmap
-                lightmap.update_from_in_progress()
+                # lightmap.update_from_in_progress()  # TODO: reconsider
                 self._lightmap_index += 1
                 texel = (0, 0)
             
@@ -259,7 +259,7 @@ class Radiosity(object):
         glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0)
 
         return (red_average, green_average, blue_average)
-    
+
     def average_hardware(self):
         """With the scene already drawn to the main sample FBO, use OpenGL to
         get an average of the values of every pixel.

@@ -3,9 +3,9 @@ from pyglet.gl import *
 import utils
 
 class Lightmap(object):
-    def __init__(self, size):
+    def __init__(self, width, height, initial_value=0):
         # Check size
-        self.size = (int(round(size[0])), int(round(size[1])))
+        self.size = (int(round(width)), int(round(height)))
         for size_component in self.size:
             if not utils.is_power_of_two(size_component):
                 raise ValueError("Size must be power of two")
@@ -16,7 +16,7 @@ class Lightmap(object):
         self.format = self.image.format
         self.pitch = self.image.pitch
         # Fill it with black
-        tex_data = (chr(0) * 3 + chr(255)) * self.size[0] * self.size[1]
+        tex_data = (chr(initial_value) * 3 + chr(255)) * self.size[0] * self.size[1]
         self.image.set_data(self.format, self.pitch, tex_data)
         
         # Create another image to store in-progress data
@@ -41,7 +41,11 @@ class Lightmap(object):
         value_data = ""
         for channel_value in value:
             int_value = int(round(channel_value * 255.0))
-            value_data += chr(int_value)
+            try:
+                value_data += chr(int_value)
+            except ValueError:
+                print value
+                raise
         value_data += chr(255)  # Alpha
         
         # Replace the texel data with the new value
@@ -56,8 +60,6 @@ class Lightmap(object):
         self.in_progress_texture = self.in_progress_image.get_texture()
 
         # Set tex attributes
-        # We'll be scaling it down to average the pixels, so use linear
-        # minification.
         glEnable(GL_TEXTURE_2D)
         glBindTexture(GL_TEXTURE_2D, self.in_progress_texture.id)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE)
@@ -85,5 +87,6 @@ class Lightmap(object):
         glBindTexture(GL_TEXTURE_2D, self.texture.id)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP)
+
 
         

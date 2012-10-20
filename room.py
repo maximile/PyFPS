@@ -76,6 +76,16 @@ class Room(object):
         # Walls shared with other rooms; key = wall index, value = other room
         self.shared_walls = {}
         
+        # Work out bounding box
+        min_x = max_x = self.vertices[0][0]
+        min_y = max_y = self.vertices[0][1]
+        for x, y in self.vertices:
+            min_x = min(min_x, x)
+            max_x = max(max_x, x)
+            min_y = min(min_y, y)
+            max_y = max(max_y, y)
+        self.bounding_box = (min_x, max_x, min_y, max_y)
+
         # Texture coordinates for walls (uses same indexes as self.vertices)
         self.wall_texture_vertices = None
         self.wall_lightmap_vertices = None
@@ -105,7 +115,72 @@ class Room(object):
         
         # self.triangles = []
         self.wall_triangles = []
-        
+    
+    def contains_point(self, point):
+        """True if the room contains the given 2D or 3D point.
+
+        """
+        # Three coords? Check Z first.
+        if len(point) > 2:
+            if not self.floor_height <= point[3] <= self.ceiling_height:
+                return False
+
+        # Check it's inside the boundaries
+        distant_point = (0.0, 1e10)
+        player_to_distance = ((point[0], point[1]), distant_point)
+        # Count the times it crosses the room's boundary. Odd = inside.
+        cross_count = 0
+        for wall in self.walls:
+            if utils.lines_intersect(player_to_distance, wall):
+                cross_count += 1
+        if cross_count % 2 == 1:
+            return True
+        else:
+            return False
+
+    def get_position_for_floor_lightmap_texel(self, texel):
+        """
+
+        """
+        min_x, max_x, min_y, max_y = self.bounding_box
+
+        # Get the texel in texture map space (0.0-1.0). Add 0.5 to use the
+        # center of the texel instead of the corner.
+        map_coords = ((texel[0] + 0.5) / float(self.floor_lightmap.size[0]),
+                      (texel[1] + 0.5) / float(self.floor_lightmap.size[1]))
+
+        # Get world space position
+        x = (max_x - min_x) * map_coords[0] + min_x
+        y = (max_y - min_y) * map_coords[1] + min_y
+        if not self.contains_point((x, y)):
+            return None
+        pos = (x, y, self.floor_height)
+
+        heading = 0.0  # Flat floor
+        pitch = math.pi / 2.0
+        return pos, heading, pitch    
+
+    def get_position_for_ceiling_lightmap_texel(self, texel):
+        """
+
+        """
+        min_x, max_x, min_y, max_y = self.bounding_box
+
+        # Get the texel in texture map space (0.0-1.0). Add 0.5 to use the
+        # center of the texel instead of the corner.
+        map_coords = ((texel[0] + 0.5) / float(self.floor_lightmap.size[0]),
+                      (texel[1] + 0.5) / float(self.floor_lightmap.size[1]))
+
+        # Get world space position
+        x = (max_x - min_x) * map_coords[0] + min_x
+        y = (max_y - min_y) * map_coords[1] + min_y
+        if not self.contains_point((x, y)):
+            return None
+        pos = (x, y, self.ceiling_height)
+        heading = 0.0  # Flat floor
+        pitch = math.pi / -2.0
+        return pos, heading, pitch
+
     def get_position_for_wall_lightmap_texel(self, texel):
         """Get the position and normal for the part of the wall that the given
         lightmap texel applies to.
@@ -160,8 +235,19 @@ class Room(object):
             shape.wall_index = i
             space.add(shape)
     
-    # def generate_floor_and_ceiling_lightmaps(self):
-    #     """Create lightmaps for the floor and ceiling"""
+    def generate_floor_and_ceiling_lightmaps(self):
+        """Create lightmaps for the floor and ceiling.
+
+        """
+        width = 32.0
+        height = 32.0
+
+        self.floor_lightmap = Lightmap(width, height)
+        self.ceiling_lightmap = Lightmap(width, height, 255)
+        self.lightmaps.append((self.floor_lightmap,
+                               self.get_position_for_floor_lightmap_texel))
+        self.lightmaps.append((self.ceiling_lightmap,
+                               self.get_position_for_ceiling_lightmap_texel))
 
     def generate_wall_lightmap(self):
         """Create a lightmap for the wall, and tex coords for it.
@@ -190,11 +276,11 @@ class Room(object):
             width = 2048.0
         
         # Create lightmap
-        self.wall_lightmap = Lightmap((width, height))
+        self.wall_lightmap = Lightmap(width, height)
         
         # Info to generate radiosity
-        self.lightmaps = [(self.wall_lightmap,
-                           self.get_position_for_wall_lightmap_texel)]
+        self.lightmaps.append((self.wall_lightmap,
+                               self.get_position_for_wall_lightmap_texel))
         
     def generate_wall_tex_coords(self):
         """For each point along the walls, generate texture coordinates and
@@ -299,7 +385,12 @@ class Room(object):
                 # Correct ratio and add to list
                 floor_data.append(tex_x * floor_texture_ratio)
                 floor_data.append(tex_y)
-            
+                # Lightmap coords
+                min_x, max_x, min_y, max_y = self.bounding_box
+                lm_x = (point[0] - min_x) / (max_x - min_x)
+                lm_y = (point[1] - min_y) / (max_y - min_y)
+                floor_data.extend([lm_x, lm_y])
+
             # Ceiling triangles need to be reversed to get the correct winding
             for point in reversed(triangle):
                 # Ceiling data
@@ -324,9 +415,14 @@ class Room(object):
                 # Correct ratio and add to list
                 ceiling_data.append(tex_x * ceiling_texture_ratio)
                 ceiling_data.append(tex_y)
+                # Lightmap coords
+                min_x, max_x, min_y, max_y = self.bounding_box
+                lm_x = (point[0] - min_x) / (max_x - min_x)
+                lm_y = (point[1] - min_y) / (max_y - min_y)
+                ceiling_data.extend([lm_x, lm_y])
         
         # Floor: put it in an array of GLfloats
-        self.floor_data_count = len(floor_data) / 5
+        self.floor_data_count = len(floor_data) / 7
         floor_data = (GLfloat * len(floor_data))(*floor_data)
         # Add the data to the FBO
         glBindBuffer(GL_ARRAY_BUFFER, self.floor_data_vbo)
@@ -334,7 +430,7 @@ class Room(object):
                      GL_STATIC_DRAW)
 
         # Ceiling: put it in an array of GLfloats
-        self.ceiling_data_count = len(ceiling_data) / 5
+        self.ceiling_data_count = len(ceiling_data) / 7
         ceiling_data = (GLfloat * len(ceiling_data))(*ceiling_data)
         # Add the data to the FBO
         glBindBuffer(GL_ARRAY_BUFFER, self.ceiling_data_vbo)
@@ -343,6 +439,8 @@ class Room(object):
         
         # Now the walls. If we're okay with wraps around corners, we need to 
         # know the total wall length first.
+        self.lightmaps = []
+        self.generate_floor_and_ceiling_lightmaps()
         self.generate_wall_lightmap()
         if self.wall_texture_fit == WALL_TEXTURE_FIT_OVERALL:
             total_wall_length = 0.0
