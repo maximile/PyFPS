@@ -3,7 +3,7 @@ from pyglet.gl import *
 import utils
 
 class Lightmap(object):
-    def __init__(self, width, height, initial_value=0):
+    def __init__(self, width, height, initial_value=(0, 0, 0)):
         # Check size
         self.size = (int(round(width)), int(round(height)))
         for size_component in self.size:
@@ -16,14 +16,16 @@ class Lightmap(object):
         self.format = self.image.format
         self.pitch = self.image.pitch
         # Fill it with black
-        tex_data = (chr(initial_value) * 3 + chr(255)) * self.size[0] * self.size[1]
+        initial_value_chr = "".join([chr(v) for v in initial_value])
+        tex_data = (initial_value_chr + chr(255)) * self.size[0] * self.size[1]
         self.image.set_data(self.format, self.pitch, tex_data)
         
         # Create another image to store in-progress data
         self.in_progress_image = pyglet.image.create(self.size[0], self.size[1])
         assert self.in_progress_image.format == self.format
         assert self.in_progress_image.pitch == self.pitch
-        tex_data = (chr(127) * 3 + chr(255)) * self.size[0] * self.size[1]
+        initial_value_chr = chr(255) + chr(0) + chr(255)
+        tex_data = (initial_value_chr + chr(255)) * self.size[0] * self.size[1]
         self.in_progress_image.set_data(self.format, self.pitch, tex_data)
         
         # Get the textures
@@ -64,6 +66,7 @@ class Lightmap(object):
         glBindTexture(GL_TEXTURE_2D, self.in_progress_texture.id)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE)
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE)
+        # glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST)
     
     def update_from_in_progress(self):
         """After setting pixel data using set_value, call this to update the

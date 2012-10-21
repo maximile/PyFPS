@@ -138,22 +138,41 @@ class Room(object):
         else:
             return False
 
-    def get_position_for_floor_lightmap_texel(self, texel):
-        """
+    def get_floor_ceiling_lm_coord(self, texel):
+        """From a given texel, get the world space position.
+
+        If the centre isn't contained, it'll try the corners instead.
 
         """
         min_x, max_x, min_y, max_y = self.bounding_box
 
-        # Get the texel in texture map space (0.0-1.0). Add 0.5 to use the
-        # center of the texel instead of the corner.
-        map_coords = ((texel[0] + 0.5) / float(self.floor_lightmap.size[0]),
-                      (texel[1] + 0.5) / float(self.floor_lightmap.size[1]))
-
-        # Get world space position
-        x = (max_x - min_x) * map_coords[0] + min_x
-        y = (max_y - min_y) * map_coords[1] + min_y
-        if not self.contains_point((x, y)):
+        # Sample from the centre if that's inside the room.
+        # If that fails, we'll also try every corner to get a value.
+        # (Inaccurate but better than having uncoloured texels showing)
+        center = (0.5, 0.5)
+        corners = [(0.0, 0.0), (1.0, 0.0), (0.0, 1.0), (1.0, 1.0)]
+        for offset_x, offset_y in [center] + corners:
+            ts_x = (texel[0] + offset_x) / float(self.floor_lightmap.size[0])
+            ts_y = (texel[1] + offset_y) / float(self.floor_lightmap.size[1])
+            # Get world space position
+            x = (max_x - min_x) * ts_x + min_x
+            y = (max_y - min_y) * ts_y + min_y
+            if self.contains_point((x, y)):
+                break
+        else:
+            # None of the centre or corners map to a part of the room
             return None
+
+        return x, y
+
+    def get_position_for_floor_lightmap_texel(self, texel):
+        """
+
+        """
+        ws_coord = self.get_floor_ceiling_lm_coord(texel)
+        if ws_coord is None:
+            return None
+        x, y = self.get_floor_ceiling_lm_coord(texel)
         pos = (x, y, self.floor_height)
 
         heading = 0.0  # Flat floor
@@ -164,19 +183,12 @@ class Room(object):
         """
 
         """
-        min_x, max_x, min_y, max_y = self.bounding_box
-
-        # Get the texel in texture map space (0.0-1.0). Add 0.5 to use the
-        # center of the texel instead of the corner.
-        map_coords = ((texel[0] + 0.5) / float(self.floor_lightmap.size[0]),
-                      (texel[1] + 0.5) / float(self.floor_lightmap.size[1]))
-
-        # Get world space position
-        x = (max_x - min_x) * map_coords[0] + min_x
-        y = (max_y - min_y) * map_coords[1] + min_y
-        if not self.contains_point((x, y)):
+        ws_coord = self.get_floor_ceiling_lm_coord(texel)
+        if ws_coord is None:
             return None
+        x, y = self.get_floor_ceiling_lm_coord(texel)
         pos = (x, y, self.ceiling_height)
+
         heading = 0.0  # Flat floor
         pitch = math.pi / -2.0
         return pos, heading, pitch
@@ -243,7 +255,7 @@ class Room(object):
         height = 32.0
 
         self.floor_lightmap = Lightmap(width, height)
-        self.ceiling_lightmap = Lightmap(width, height, 255)
+        self.ceiling_lightmap = Lightmap(width, height, (255, 255, 255))
         self.lightmaps.append((self.floor_lightmap,
                                self.get_position_for_floor_lightmap_texel))
         self.lightmaps.append((self.ceiling_lightmap,
