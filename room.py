@@ -265,7 +265,7 @@ class Room(object):
         """Create a lightmap for the wall, and tex coords for it.
         
         """
-        height = 32.0
+        height = 8.0
         
         # Add up the wall lengths to find the width
         total_wall_length = 0.0

@@ -411,14 +411,6 @@ class Radiosity(object):
             tex = pyglet.image.Texture.create_for_size(GL_TEXTURE_2D, size, size,
                                                        GL_RGBA)
             glBindTexture(GL_TEXTURE_2D, tex.id)
-            # We'll be scaling it down to average the pixels, so use linear
-            # minification.
-            glEnable(GL_TEXTURE_2D)
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
-                            GL_LINEAR_MIPMAP_NEAREST)
-            # glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR)
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP)
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP)
                                                        
             # Create the FBO
             fbo = GLuint()
@@ -434,7 +426,6 @@ class Radiosity(object):
             glFramebufferRenderbufferEXT(GL_FRAMEBUFFER_EXT,
                                          GL_DEPTH_ATTACHMENT_EXT,
                                          GL_RENDERBUFFER_EXT, depth_buffer)
-
             
             # Attach the texture to the FBO
             glBindTexture(GL_TEXTURE_2D, tex.id)
@@ -446,6 +437,15 @@ class Radiosity(object):
             # Reset the state
             glBindFramebufferEXT(GL_FRAMEBUFFER_EXT, 0)
             
+            # We'll be scaling it down to average the pixels, so use linear
+            # minification.
+            glEnable(GL_TEXTURE_2D)
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER,
+                            GL_LINEAR_MIPMAP_NEAREST)
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP)
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP)
+            glGenerateMipmapEXT(GL_TEXTURE_2D)
+
             # Add a tuple of texture and FBO to the list
             tex_fbo_list.append((tex, fbo))
         return tex_fbo_list
