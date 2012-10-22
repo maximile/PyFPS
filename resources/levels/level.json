@@ -32,7 +32,11 @@
 		 "meshes": [
 			 {"path": "meshes/pipe.obj",
 			  "texture": "meshes/pipe.png",
+			  "position": [8.0, 9.0, 1.2]},
+  			 {"path": "meshes/light.obj",
+			  "texture": "meshes/light.png",
 			  "position": [8.0, 9.0, 1.2]}
+
 		 ]
 
 		},
