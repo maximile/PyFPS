@@ -26,6 +26,7 @@ SOFTWARE = "SOFTWARE"
 
 # # Default pass information
 # DEFAULT_PASSES = [0.5, 1.0, 1.0]
+PASS_COUNT = 6
 
 class Radiosity(object):
     """Class for managing lightmap generation using radiosity.
@@ -67,6 +68,8 @@ class Radiosity(object):
         # Info about how to render the cubemaps
         self.view_setups = self._generate_view_setups()
         
+        self.pass_index = 0
+        
     def _generate_view_setups(self):
         """A list of views that we need to render.
         
@@ -104,6 +107,8 @@ class Radiosity(object):
         # Make sure there's something to do
         if self._lightmap_index is None:
             return
+        if self.pass_index >= PASS_COUNT:
+            return
 
         # Find the next texel we need to work on.
         texel = self._current_texel
@@ -131,7 +136,12 @@ class Radiosity(object):
             break
         else:
             # Didn't find any texels that needed work; we're done
-            self._lightmap_index = None
+            for lightmap_info in self._lightmaps_info:
+                lightmap, _ = lightmap_info
+                lightmap.update_from_in_progress()
+            self._lightmap_index = 0
+            self._current_texel = (0, 0)
+            self.pass_index += 1
             return
         # Keep track of the texel
         self._current_texel = texel
@@ -147,6 +157,10 @@ class Radiosity(object):
             for matrix_mode in GL_PROJECTION, GL_MODELVIEW:
                 glMatrixMode(matrix_mode)
                 glPopMatrix()
+
+        # Exposure calculation (TODO: Should be done once, not after every pass)
+        #incident_value = [1 - (math.e ** (-val * 2.0)) for val in incident_value]
+        incident_value = [min(val, 1.0) for val in incident_value]
 
         lightmap.set_value(texel, incident_value)            
 

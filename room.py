@@ -251,11 +251,11 @@ class Room(object):
         """Create lightmaps for the floor and ceiling.
 
         """
-        width = 32.0
-        height = 32.0
+        width = 128.0
+        height = 128.0
 
         self.floor_lightmap = Lightmap(width, height)
-        self.ceiling_lightmap = Lightmap(width, height, (255, 255, 255))
+        self.ceiling_lightmap = Lightmap(width, height)
         self.lightmaps.append((self.floor_lightmap,
                                self.get_position_for_floor_lightmap_texel))
         self.lightmaps.append((self.ceiling_lightmap,
@@ -265,7 +265,7 @@ class Room(object):
         """Create a lightmap for the wall, and tex coords for it.
         
         """
-        height = 8.0
+        height = 32.0
         
         # Add up the wall lengths to find the width
         total_wall_length = 0.0
