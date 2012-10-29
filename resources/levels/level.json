@@ -5,7 +5,7 @@
 	},
 	"rooms": [
 		{"floor_height": 0.2,
-		 "ceiling_height": 3.0,
+		 "ceiling_height": 20.0,
 		 "wall_texture": "textures/light.png",
 		 "floor_texture": "textures/light.png",
 		 "ceiling_texture": "textures/light.png",
@@ -18,24 +18,21 @@
                       [11.0, 9.0],
                       [12.0, 9.0],
                       [12.0, 12.0],
-                      [9.0, 15.0],
-                      [7.0, 15.0],
-                      [4.0, 12.0],
-					  [4.0, 7.0],
-                      [7.0, 7.0],
-                      [7.0, 9.0],
-                      [9.0, 9.0],
-                      [9.0, 8.0],
-                      [8.0, 6.0],
-                      [8.0, 3.0]
+                      [12.0, 35.0],
+                      [-18.0, 35.0],
+                      [-18.0, 12.0],
+					  [-18.0, 8.0]
 					 ],
 		 "meshes": [
 			 {"path": "meshes/pipe.obj",
 			  "texture": "meshes/pipe.png",
-			  "position": [8.0, 9.0, 1.2]},
+			  "position": [-12.0, 8.0, 1.2]},
   			 {"path": "meshes/light.obj",
 			  "texture": "meshes/light.png",
-			  "position": [8.0, 9.0, 1.2]}
+			  "position": [8.0, 8.0, 1.2]},
+  			 {"path": "meshes/bigpipe.obj",
+			  "texture": "meshes/bigpipe.png",
+			  "position": [12.0, 20.0, 0.0]}
 
 		 ]
         }
